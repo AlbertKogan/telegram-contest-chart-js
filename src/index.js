@@ -11,7 +11,7 @@ import {
 const chartWrapper = document.getElementById('chartWrapper');
 const chart = document.createElement('canvas');
 const previewWrapper = document.createElement('div');
-const preview = new Preview({ width: 500, height: 200 });
+const preview = new Preview({ width: 500, height: 100 });
 const dpi = window.devicePixelRatio;
 
 chart.setAttribute('width', chartWrapper.offsetWidth);
