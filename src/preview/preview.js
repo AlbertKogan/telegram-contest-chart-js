@@ -1,5 +1,5 @@
 import Base from './../common/base';
-import { throttle } from './../utils';
+import { maxInDataSet, converDataSetToPoints, convertToXAxisCoords, throttle } from '../common/utils';
 
 import styles from './style.scss';
 
@@ -10,6 +10,7 @@ import {
     HOVER_LEFT_BORDER,
     HOVER_RIGHT_BORDER
 } from './constants';
+import { SET_VISIBLE_BOUNDS } from './../common/actions';
 
 class Preview extends Base {
     borderThreshold = 10;
@@ -24,12 +25,15 @@ class Preview extends Base {
     hoverType = null
     _delta = 0
 
-    constructor ({ width, height }) {
+    constructor ({ width, height, data, store }) {
         super();
         const self = this;
 
         self.width = width;
         self.height = height;
+        self._rawData = data;
+        self.store = store;
+
 
         // Create layers: base, window, top layer
         const windowLayer = self.createLayer({ layerID: WINDOW_LAYER });
@@ -42,6 +46,15 @@ class Preview extends Base {
         baseLayer.width = width;
         baseLayer.height = height;
         baseLayer.classList.add(styles.preview, styles.previewBase);
+
+        self.maxInColumns = maxInDataSet({ dataSet: Object.values(data.columns) });
+        self.xCoords = convertToXAxisCoords({ layerWidth: width, data: data.x });
+        self.points = converDataSetToPoints({ 
+            dataSet: data.columns, 
+            xCoords: self.xCoords, 
+            layerHeight: height, 
+            maxValue: self.maxInColumns 
+        });
 
         self.setLayerSettings({
             layerID: WINDOW_LAYER,
@@ -60,7 +73,8 @@ class Preview extends Base {
         }
 
         // Draw rectangle
-        self.drawBase();
+        self.drawChart({ layerID: BASE_LAYER, points: self.points, colors: data.colors });
+
         self.drawWindow();
 
         self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mousemove', handler: self.throttledMosueMove.bind(self) });
@@ -213,6 +227,7 @@ class Preview extends Base {
         windowLayerContext.rect(...Object.values(newWindowPosition));
         windowLayerContext.stroke();
         windowLayerContext.closePath();
+        this.sliceVisiblePart();
         this.drawOverlay();
     }
 
@@ -243,19 +258,16 @@ class Preview extends Base {
         );
     }
 
-    drawBase () {
-        const { width, height } = this;
-        const windowLayerContext = this.getLayerContext({ layerID: BASE_LAYER });
+    sliceVisiblePart () {
+        const { windowPosition, xCoords, store } = this;
 
-        windowLayerContext.clearRect(0, 0, width, height);
-
-        windowLayerContext.fillStyle = "#c82124";
-
-        windowLayerContext.beginPath();
-        windowLayerContext.moveTo(0, 0);
-        windowLayerContext.lineTo(width, height);
-        windowLayerContext.stroke();
-        windowLayerContext.closePath();    
+        store.dispatch({
+            actionKey: SET_VISIBLE_BOUNDS, 
+            payload: {
+                fromIndex: xCoords.findIndex((item) => item >= windowPosition.x),
+                toIndex: xCoords.findIndex((item) => item >= windowPosition.x + windowPosition.width)
+            }
+        });
     }
 };
 

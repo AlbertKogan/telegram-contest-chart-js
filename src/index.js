@@ -2,56 +2,72 @@ import data from './assets/chart_data.json';
 import styles from './style.scss'
 
 import Preview from './preview/preview';
+import LineChart from './line-chart/line-chart';
 
 import { 
     WINDOW_LAYER,
     BASE_LAYER
 } from './preview/constants';
 
-const chartWrapper = document.getElementById('chartWrapper');
-const chart = document.createElement('canvas');
-const previewWrapper = document.createElement('div');
-const preview = new Preview({ width: 500, height: 100 });
-const dpi = window.devicePixelRatio;
+import { LINE_CHART_LAYER, X_AXIS_LAYER, LINES_LAYER } from './line-chart/constants';
+import Store from './common/store';
+import actions from './common/actions';
+import mutations from './common/mutations';
 
-chart.setAttribute('width', chartWrapper.offsetWidth);
-chart.setAttribute('height', 500);
+const processData = (data) =>
+    data.map((item) => {
+        const { x, ...columns } = item.columns.reduce((acc, current) => ({
+            ...acc,
+            [current[0]]: current.slice(1)
+        }), {});
+
+        return {
+            ...item,
+            x,
+            columns
+        };
+    });
+
+const INITIAL_STATE = {
+    ui: {
+        mode: 'light',
+        visibleBounds: {}
+    },
+    orm: {
+        _rawData: data,
+        data: processData(data)
+    }
+};
+
+const store = new Store({
+    actions, 
+    mutations, 
+    state: INITIAL_STATE
+});
+
+console.log('store', store);
+window.chartStore = store;
+
+const chartWrapper = document.getElementById('chartWrapper');
+const previewWrapper = document.createElement('div');
+const lineChartWrapper = document.createElement('div');
+
+const _data = processData(data);
+console.log('data', _data);
+
+const preview = new Preview({ width: 500, height: 100, store, data: _data[0] });
+const lineChart = new LineChart({ width: 500, height: 500, store, data: _data[0] });
 
 previewWrapper.classList.add(styles.previewWrapper);
+lineChartWrapper.classList.add(styles.chartWrapper);
 
-const points = [
-    { x: 0, y: 0 },
-    { x: 50, y: 100 },
-    { x: 100, y: 300 },
-    { x: 150, y: 20 },
-    { x: 200, y: 50 }
-];
-
-function drawLineWithDots ({ points, ctx }) {
-    ctx.fillStyle = "#c82124";
-
-    ctx.beginPath();
-    for (let i = 0; i < points.length - 1; i++) {
-      let p1 = points[i];
-      let p2 = points[i+1];
-    
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.moveTo(p2.x, p2.y);
-      ctx.arc(p2.x, p2.y, 10, 0, 2 * Math.PI);
-    }
-    ctx.stroke();
-    ctx.fill();
-    ctx.closePath();
-}
-
-const ctx = chart.getContext('2d');
-drawLineWithDots({ points, ctx });
-
+lineChartWrapper.appendChild(lineChart.getLayer({ layerID: X_AXIS_LAYER }));
+lineChartWrapper.appendChild(lineChart.getLayer({ layerID: LINES_LAYER }));
+lineChartWrapper.appendChild(lineChart.getLayer({ layerID: LINE_CHART_LAYER }));
 
 previewWrapper.appendChild(preview.getLayer({ layerID: BASE_LAYER }));
 previewWrapper.appendChild(preview.getLayer({ layerID: WINDOW_LAYER }));
 
-chartWrapper.appendChild(chart);
+chartWrapper.appendChild(lineChartWrapper);
 chartWrapper.appendChild(previewWrapper);
 
