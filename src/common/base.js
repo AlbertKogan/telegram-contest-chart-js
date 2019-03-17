@@ -52,12 +52,26 @@ class Base {
         layer.addEventListener(handlerType, handler);
     }
 
+    clearContext ({ layerID }) {
+        const { width, height } = this;
+        const context = this.getLayerContext({ layerID });
+
+        context.clearRect(0, 0, width, height);
+    }
+
+    clearScene () {
+        const { contexts } = this;
+
+        for (let layerID in contexts) {
+            this.clearContext({ layerID });
+        }
+    }
+
     drawChart ({ layerID, points, colors }) {
         const chartContext = this.getLayerContext({ layerID });
-        const {width, height} = this;
 
-        chartContext.clearRect(0, 0, width, height);
-        
+        this.clearContext({ layerID })
+
         for (let line in points) {
             chartContext.beginPath();
             chartContext.strokeStyle = colors[line];

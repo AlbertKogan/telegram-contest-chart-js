@@ -5,6 +5,7 @@ import commonStyles from './../style.scss';
 
 class LineChart extends Base {
     _rawData = {}
+    _visibleBounds = { fromIndex: 0, toIndex: 0 }
 
     constructor({ width, height, data, store }) {
         super();
@@ -14,15 +15,6 @@ class LineChart extends Base {
         self.height = height;
         self._rawData = data;
         self.store = store;
-
-        self.maxInColumns = maxInDataSet({ dataSet: Object.values(data.columns) });
-        self.xCoords = convertToXAxisCoords({ layerWidth: width, data: data.x });
-        self.points = converDataSetToPoints({ 
-            dataSet: data.columns, 
-            xCoords: self.xCoords, 
-            layerHeight: height, 
-            maxValue: self.maxInColumns 
-        });
 
         const chartLayer = self.createLayer({ layerID: LINE_CHART_LAYER });
         const xAxisLayer = self.createLayer({ layerID: X_AXIS_LAYER });
@@ -40,24 +32,15 @@ class LineChart extends Base {
         backLayer.height = height;
         backLayer.classList.add(commonStyles.layer);
 
-        this.drawChart({ layerID: LINE_CHART_LAYER, points: self.points, colors: data.colors });
-        this.drawXAxis();
-        this.drawLines();
+        self.recalculate();
+        self.drawScene();
 
         store.events.subscribe({ 
             eventName: 'stateChange', 
             callback: () => {
-                const visibleBounds = store.state.ui.visibleBounds;
-                let newPoints = {} ;
-
-                for (let item in self.points) {
-                    newPoints = {
-                        ...newPoints,
-                        [item]: self.points[item].slice(visibleBounds.fromIndex, visibleBounds.toIndex)
-                    }
-                }
-                this.drawChart({ layerID: LINE_CHART_LAYER, points: newPoints, colors: data.colors });
-
+                self._visibleBounds = store.state.ui.visibleBounds;
+                self.recalculate();
+                self.drawScene();
             }
         });
     }
@@ -68,9 +51,48 @@ class LineChart extends Base {
         return date.toLocaleDateString();
     }
 
+    recalculate () {
+        const { fromIndex, toIndex } = this.visibleBounds;
+        const { columns, x } = this.rawData;
+        let newDataSet = { ...columns };
+        let newXAxisData = [...x];
+
+        if (toIndex) {
+            newXAxisData = x.slice(fromIndex, toIndex);
+            for (let column in columns) {
+                newDataSet[column] = columns[column].slice(fromIndex, toIndex);
+            }
+        }
+        
+        this.maxInColumns = maxInDataSet({ dataSet: Object.values(newDataSet) });
+        this.xCoords = convertToXAxisCoords({ layerWidth: this.width, data: newXAxisData });
+        this.points = converDataSetToPoints({ 
+            dataSet: newDataSet, 
+            xCoords: this.xCoords, 
+            layerHeight: this.height, 
+            maxValue: this.maxInColumns 
+        });
+    }
+
+    get visibleBounds () {
+        return this._visibleBounds;
+    }
+
+    get rawData () {
+        return this._rawData;
+    }
+
+    drawScene () {
+        this.clearScene();
+        this.drawChart({ layerID: LINE_CHART_LAYER, points: this.points, colors: this._rawData.colors });
+        this.drawXAxis();
+        this.drawLines();
+    }
+
     drawXAxis () {
         const { height, width } = this;
         const xAxisLayer = this.getLayerContext({ layerID: X_AXIS_LAYER });
+        this.clearContext({ layerID: X_AXIS_LAYER });
 
         xAxisLayer.fillStyle = "#c82124";
         xAxisLayer.beginPath();
@@ -107,6 +129,8 @@ class LineChart extends Base {
         const linesLayer = this.getLayerContext({ layerID: LINES_LAYER });
 
         let h = height - 50;
+
+        this.clearContext({ layerID: LINES_LAYER });
 
         linesLayer.fillStyle = "#c82124";
 
