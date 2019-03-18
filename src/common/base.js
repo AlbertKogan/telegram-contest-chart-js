@@ -55,7 +55,7 @@ class Base {
     clearContext ({ layerID }) {
         const { width, height } = this;
         const context = this.getLayerContext({ layerID });
-
+        
         context.clearRect(0, 0, width, height);
     }
 
