@@ -1,6 +1,7 @@
 import Base from '../common/base';
 import { LINE_CHART_LAYER, X_AXIS_LAYER, LINES_LAYER, HOVERABLE_LAYER, TOOLTIP_LAYER } from './constants';
-import { maxInDataSet, converDataSetToPoints, convertToXAxisCoords, throttle } from '../common/utils';
+import { throttle } from '../common/utils';
+
 import commonStyles from './../style.scss';
 
 class LineChart extends Base {
@@ -47,7 +48,11 @@ class LineChart extends Base {
         tooltipLayer.height = height;
         tooltipLayer.classList.add(commonStyles.layer);
 
-        self.recalculate();
+        // Default state
+        self._visibleBounds = store.state.ui.visibleBounds;
+        self._activeCharts = store.state.ui.activeCharts;
+
+        self.recalculate({ showFullRange: false });
         self.drawScene();
 
         self.withHandler({ layerID: TOOLTIP_LAYER, handlerType: 'mousemove', handler: self.throttledMosueMove.bind(self) });
@@ -55,7 +60,9 @@ class LineChart extends Base {
             eventName: 'stateChange', 
             callback: () => {
                 self._visibleBounds = store.state.ui.visibleBounds;
-                self.recalculate();
+                self._activeCharts = store.state.ui.activeCharts;
+
+                self.recalculate({ showFullRange: false });
                 self.drawScene();
             }
         });
@@ -65,29 +72,6 @@ class LineChart extends Base {
         const date = new Date(UNIXDate);
 
         return date.toLocaleDateString();
-    }
-
-    recalculate () {
-        const { fromIndex, toIndex } = this.visibleBounds;
-        const { columns, x } = this.rawData;
-        let newDataSet = { ...columns };
-        let newXAxisData = [...x];
-
-        if (toIndex) {
-            newXAxisData = x.slice(fromIndex, toIndex);
-            for (let column in columns) {
-                newDataSet[column] = columns[column].slice(fromIndex, toIndex);
-            }
-        }
-        
-        this.maxInColumns = maxInDataSet({ dataSet: Object.values(newDataSet) });
-        this.xCoords = convertToXAxisCoords({ layerWidth: this.width, data: newXAxisData });
-        this.points = converDataSetToPoints({ 
-            dataSet: newDataSet, 
-            xCoords: this.xCoords, 
-            layerHeight: this.height, 
-            maxValue: this.maxInColumns 
-        });
     }
 
     get visibleBounds () {
