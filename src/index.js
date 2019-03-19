@@ -3,6 +3,7 @@ import styles from './style.scss'
 
 import Preview from './preview/preview';
 import LineChart from './line-chart/line-chart';
+import Button from './controls/button/button';
 
 import { 
     WINDOW_LAYER,
@@ -31,7 +32,12 @@ const processData = (data) =>
 const INITIAL_STATE = {
     ui: {
         mode: 'light',
-        visibleBounds: {}
+        visibleBounds: {},
+        // TODO: needs better way to provide active
+        activeCharts: {
+            'y0': true,
+            'y1': true
+        }
     },
     orm: {
         _rawData: data,
@@ -50,6 +56,8 @@ window.chartStore = store;
 const chartWrapper = document.getElementById('chartWrapper');
 const previewWrapper = document.createElement('div');
 const lineChartWrapper = document.createElement('div');
+const button = new Button({ store, id: 'y0' });
+const button2 = new Button({ store, id: 'y1' });
 
 const _data = processData(data);
 
@@ -70,4 +78,6 @@ previewWrapper.appendChild(preview.getLayer({ layerID: WINDOW_LAYER }));
 
 chartWrapper.appendChild(lineChartWrapper);
 chartWrapper.appendChild(previewWrapper);
+chartWrapper.appendChild(button.buttonWrapper);
+chartWrapper.appendChild(button2.buttonWrapper);
 

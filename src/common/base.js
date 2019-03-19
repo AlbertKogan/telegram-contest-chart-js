@@ -1,3 +1,5 @@
+import { maxInDataSet, converDataSetToPoints, convertToXAxisCoords } from '../common/utils';
+
 class Base {
     width = 0
     height = 0
@@ -85,6 +87,45 @@ class Base {
             chartContext.stroke();
             chartContext.closePath();
         }
+    }
+
+    getActiveColumns ({ activeCharts, columns }) {
+        let activeColumns = {};
+
+        for (let id in activeCharts) {
+            if (activeCharts[id]) {
+                activeColumns[id] = columns[id];
+            }
+        }
+
+        return activeColumns;
+    }
+
+    // TODO: do not call in base
+    recalculate ({ showFullRange = true}) {
+        const activeCharts = this._activeCharts;
+        const { fromIndex, toIndex } = this._visibleBounds;
+        const { columns, x } = this._rawData;
+
+        const activeColumns = this.getActiveColumns({ activeCharts, columns });
+        let newDataSet = { ...activeColumns };
+        let newXAxisData = [...x];
+
+        if (toIndex && !showFullRange) {
+            newXAxisData = x.slice(fromIndex, toIndex);
+            for (let column in activeColumns) {
+                newDataSet[column] = columns[column].slice(fromIndex, toIndex);
+            }
+        }
+        
+        this.maxInColumns = maxInDataSet({ dataSet: Object.values(newDataSet) });
+        this.xCoords = convertToXAxisCoords({ layerWidth: this.width, data: newXAxisData });
+        this.points = converDataSetToPoints({ 
+            dataSet: newDataSet, 
+            xCoords: this.xCoords, 
+            layerHeight: this.height, 
+            maxValue: this.maxInColumns 
+        });
     }
 }
 

@@ -1,0 +1,90 @@
+@keyframes stroke {
+    100% {
+        stroke-dashoffset: 0;
+    }
+}
+@keyframes scale {
+    0%, 100% {
+        transform: none;
+    }
+    50% {
+        transform: scale3d(1.1, 1.1, 1);
+    }
+}
+@keyframes fill {
+    100% {
+        fill: #7ac142;
+        stroke: #7ac142;
+    }
+}
+
+@keyframes fillOut {
+    100% {
+        fill: white;
+        stroke: #7ac142;
+    }
+}
+
+.active {
+    .button {
+        &LabelCircle {
+            animation: fill .4s ease-in forwards;
+        }
+
+        &LabelIcon {
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards, scale .3s ease-in-out .9s both;;
+        }
+    }
+}
+
+.button {
+    &Wrapper {
+        border: 1px solid grey;
+        border-radius: 20px;
+        min-width: 100px;
+        min-height: 16px;
+        cursor: pointer;
+        padding: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        user-select: none;
+
+        &:hover {
+            border-color: rgb(83, 83, 83);
+        }
+    }
+
+    &Text {
+        line-height: 14px;
+        font-size: 14px;
+        margin: 0 5px;
+        padding-top: 1p; 
+    }
+
+    &Label {
+        display: flex;
+        width: 16px;
+        height: 16px;
+        stroke-width: 5;
+        stroke-miterlimit: 10;
+        fill: none;
+
+        &Circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            stroke-width: 4;
+            stroke-miterlimit: 10;
+            stroke: #7ac142;
+            animation: fillOut .4s ease-in forwards;
+
+        }
+
+        &Icon {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            stroke: white;
+        }
+    }
+}

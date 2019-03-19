@@ -1,5 +1,5 @@
 import Base from './../common/base';
-import { maxInDataSet, converDataSetToPoints, convertToXAxisCoords, throttle } from '../common/utils';
+import { throttle } from '../common/utils';
 
 import styles from './style.scss';
 
@@ -34,6 +34,9 @@ class Preview extends Base {
         self._rawData = data;
         self.store = store;
 
+        // Default state
+        self._visibleBounds = store.state.ui.visibleBounds;
+        self._activeCharts = store.state.ui.activeCharts;
 
         // Create layers: base, window, top layer
         const windowLayer = self.createLayer({ layerID: WINDOW_LAYER });
@@ -47,14 +50,7 @@ class Preview extends Base {
         baseLayer.height = height;
         baseLayer.classList.add(styles.preview, styles.previewBase);
 
-        self.maxInColumns = maxInDataSet({ dataSet: Object.values(data.columns) });
-        self.xCoords = convertToXAxisCoords({ layerWidth: width, data: data.x });
-        self.points = converDataSetToPoints({ 
-            dataSet: data.columns, 
-            xCoords: self.xCoords, 
-            layerHeight: height, 
-            maxValue: self.maxInColumns 
-        });
+        self.recalculate({ showFullRange: true });
 
         self.setLayerSettings({
             layerID: WINDOW_LAYER,
@@ -82,6 +78,17 @@ class Preview extends Base {
         self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseenter', handler: self.onMouseEnter.bind(self) });
         self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mousedown', handler: self.onMouseDown.bind(self) });
         self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseup', handler: self.onMouseUp.bind(self) });
+
+        store.events.subscribe({ 
+            eventName: 'stateChange', 
+            callback: () => {
+                self._visibleBounds = store.state.ui.visibleBounds;
+                self._activeCharts = store.state.ui.activeCharts;
+
+                self.recalculate({ showFullRange: true });
+                self.drawChart({ layerID: BASE_LAYER, points: self.points, colors: data.colors });
+            }
+        });
     }
 
     setHoverType ({ event }) {
