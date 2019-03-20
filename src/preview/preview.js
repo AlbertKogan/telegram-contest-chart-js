@@ -272,7 +272,8 @@ class Preview extends Base {
             actionKey: SET_VISIBLE_BOUNDS, 
             payload: {
                 fromIndex: xCoords.findIndex((item) => item >= windowPosition.x),
-                toIndex: xCoords.findIndex((item) => item >= windowPosition.x + windowPosition.width)
+                toIndex: xCoords.findIndex((item) => item >= windowPosition.x + windowPosition.width),
+                windowWidth: windowPosition.width
             }
         });
     }
