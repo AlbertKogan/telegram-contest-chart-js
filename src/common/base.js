@@ -1,11 +1,12 @@
 import { maxInDataSet, converDataSetToPoints, convertToXAxisCoords } from '../common/utils';
 
 class Base {
-    width = 0
-    height = 0
     layers = {}
     contexts = {}
     touchDevice = false
+    parent = null
+    parentSize = {}
+    dpr = window.devicePixelRatio || 1
 
     constructor () {
         this.touchDevice = 'ontouchstart' in document.documentElement;
@@ -19,12 +20,16 @@ class Base {
             [layerID]: layer
         }
 
+        layer.width = this.parentSize.width * this.dpr;
+        layer.height = this.parentSize.height * this.dpr;
+
         const context = layer.getContext('2d');
-        context.scale(2,2);
+        
+        context.scale(this.dpr, this.dpr);
         this.contexts = {
             ...this.contexts,
             [layerID]: context
-        }
+        };
 
         return layer;
     }
@@ -143,6 +148,20 @@ class Base {
         }
 
         return currentCursorPosition;
+    }
+
+    setParentSize () {
+        this.parentSize = this.parent.getBoundingClientRect();
+
+        return this.parentSize;
+    }
+
+    get width () {
+        return this.parentSize.width;
+    }
+
+    get height () {
+        return this.parentSize.height;
     }
 }
 

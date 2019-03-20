@@ -13,14 +13,15 @@ class LineChart extends Base {
     _hoverThreshold = 10
     _opacity = 0;
 
-    constructor({ width, height, data, store }) {
+    constructor({ parent, data, store }) {
         super();
         const self = this;
 
-        self.width = width;
-        self.height = height;
+        self.parent = parent;
         self._rawData = data;
         self.store = store;
+
+        self.setParentSize();
 
         const chartLayer = self.createLayer({ layerID: LINE_CHART_LAYER });
         const xAxisLayer = self.createLayer({ layerID: X_AXIS_LAYER });
@@ -28,24 +29,24 @@ class LineChart extends Base {
         const hoverableLayer = self.createLayer({ layerID: HOVERABLE_LAYER });
         const tooltipLayer = self.createLayer({ layerID: TOOLTIP_LAYER });
 
-        chartLayer.width = width;
-        chartLayer.height = height;
+        chartLayer.width = self.width;
+        chartLayer.height = self.height;
         chartLayer.classList.add(commonStyles.layer);
 
-        xAxisLayer.width = width;
-        xAxisLayer.height = height;
+        xAxisLayer.width = self.width;
+        xAxisLayer.height = self.height;
         xAxisLayer.classList.add(commonStyles.layer);
 
-        backLayer.width = width;
-        backLayer.height = height;
+        backLayer.width = self.width;
+        backLayer.height = self.height;
         backLayer.classList.add(commonStyles.layer);
 
-        hoverableLayer.width = width;
-        hoverableLayer.height = height;
+        hoverableLayer.width = self.width;
+        hoverableLayer.height = self.height;
         hoverableLayer.classList.add(commonStyles.layer);
 
-        tooltipLayer.width = width;
-        tooltipLayer.height = height;
+        tooltipLayer.width = self.width;
+        tooltipLayer.height = self.height;
         tooltipLayer.classList.add(commonStyles.layer);
 
         // Default state
