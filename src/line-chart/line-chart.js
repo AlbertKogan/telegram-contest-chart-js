@@ -59,6 +59,7 @@ class LineChart extends Base {
         self.drawScene();
 
         self.withHandler({ layerID: TOOLTIP_LAYER, handlerType: 'mousemove', handler: self.throttledMosueMove.bind(self) });
+        self.withHandler({ layerID: TOOLTIP_LAYER, handlerType: 'mouseout', handler: self.hideTooltip.bind(self) });
         store.events.subscribe({ 
             eventName: 'stateChange', 
             callback: () => {
@@ -69,6 +70,11 @@ class LineChart extends Base {
                 self.drawScene();
             }
         });
+    }
+
+    hideTooltip () {
+        this.clearContext({ layerID: HOVERABLE_LAYER });
+        this.clearContext({ layerID: TOOLTIP_LAYER });
     }
 
     dateLabel ({ UNIXDate, additionalOtions = {} }) {
@@ -236,29 +242,35 @@ class LineChart extends Base {
 
     drawTooltip () {
         const tooltipLayerContext = this.getLayerContext({ layerID: TOOLTIP_LAYER });
-        const { _activeIndex, xCoords, _rawData, dateLabel } = this;
+        const { _activeIndex, xCoords, _rawData, dateLabel, width } = this;
 
         var cornerRadius = { upperLeft: 10, upperRight: 10, lowerLeft: 10, lowerRight: 10 };
-        const width = 200;
+        // TODO: add dynamic width, height
+        const tooltipWidth = 200;
         const height = 150;
-        // TODO: add positioning
-        const x = xCoords[_activeIndex] + 20;
-        const y = 20;
+        let x = xCoords[_activeIndex] + 20;
+        let y = 20;
 
         this.clearContext({ layerID: TOOLTIP_LAYER });
 
         if (_activeIndex > -1) {
             const date = dateLabel({ UNIXDate: _rawData.x[_activeIndex], additionalOtions: { weekday: 'short' } });
 
+            // Check boundaries
+            if (x + tooltipWidth > width) {
+                console.log('right');
+                x -= tooltipWidth + 40;
+            }
+
             tooltipLayerContext.beginPath();
             // tooltipLayerContext.shadowBlur = 6;
             // tooltipLayerContext.shadowOffsetY = 2;
             // tooltipLayerContext.shadowColor = "#969696";
             tooltipLayerContext.moveTo(x + cornerRadius.upperLeft, y);
-            tooltipLayerContext.lineTo(x + width - cornerRadius.upperRight, y);
-            tooltipLayerContext.quadraticCurveTo(x + width, y, x + width, y + cornerRadius.upperRight);
-            tooltipLayerContext.lineTo(x + width, y + height - cornerRadius.lowerRight);
-            tooltipLayerContext.quadraticCurveTo(x + width, y + height, x + width - cornerRadius.lowerRight, y + height);
+            tooltipLayerContext.lineTo(x + tooltipWidth - cornerRadius.upperRight, y);
+            tooltipLayerContext.quadraticCurveTo(x + tooltipWidth, y, x + tooltipWidth, y + cornerRadius.upperRight);
+            tooltipLayerContext.lineTo(x + tooltipWidth, y + height - cornerRadius.lowerRight);
+            tooltipLayerContext.quadraticCurveTo(x + tooltipWidth, y + height, x + tooltipWidth - cornerRadius.lowerRight, y + height);
             tooltipLayerContext.lineTo(x + cornerRadius.lowerLeft, y + height);
             tooltipLayerContext.quadraticCurveTo(x, y + height, x, y + height - cornerRadius.lowerLeft);
             tooltipLayerContext.lineTo(x, y + cornerRadius.upperLeft);
@@ -268,7 +280,7 @@ class LineChart extends Base {
             tooltipLayerContext.fill();
             tooltipLayerContext.stroke();
             tooltipLayerContext.closePath();
-
+   
             // TODO: move it to separate handler
             tooltipLayerContext.font = '15px Helvetica';
             tooltipLayerContext.fillStyle = "black";

@@ -73,11 +73,18 @@ class Preview extends Base {
 
         self.drawWindow();
 
-        self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mousemove', handler: self.throttledMosueMove.bind(self) });
-        self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseout', handler: self.onMouseOut.bind(self) });
-        self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseenter', handler: self.onMouseEnter.bind(self) });
-        self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mousedown', handler: self.onMouseDown.bind(self) });
-        self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseup', handler: self.onMouseUp.bind(self) });
+        if (self.touchDevice) {
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'touchmove', handler: self.throttledMosueMove.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'touchstart', handler: self.onTouchStart.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'touchend', handler: self.onTouchEnd.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'touchcancel', handler: self.onTouchEnd.bind(self) });
+        } else {
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mousemove', handler: self.throttledMosueMove.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseout', handler: self.onMouseOut.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseenter', handler: self.onMouseEnter.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mousedown', handler: self.onMouseDown.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseup', handler: self.onMouseUp.bind(self) });
+        }
 
         store.events.subscribe({ 
             eventName: 'stateChange', 
@@ -92,7 +99,7 @@ class Preview extends Base {
     }
 
     setHoverType ({ event }) {
-        const mousePosition = { x: event.clientX, y: event.clientY };
+        const mousePosition = this.getCursorPosition(event);
         const { windowPosition, borderThreshold } = this;
 
         // detect right border hover
@@ -115,7 +122,8 @@ class Preview extends Base {
     }
 
     onMouseMove (event) {
-        const currentMousePosition = { x: event.clientX, y: event.clientY };
+        event.preventDefault();
+        const currentMousePosition = this.getCursorPosition(event);
         const { drawWindow, mouseDown, mousePosition } = this;
         const windowLayer = this.getLayer({ layerID: WINDOW_LAYER });
         const hoverType = this.setHoverType({ event });
@@ -175,11 +183,26 @@ class Preview extends Base {
 
 
     onMouseDown (event) {
-        const mousePosition = { x: event.clientX, y: event.clientY };
+        event.preventDefault();
+
+        const mousePosition = this.getCursorPosition(event);
 
         this.mouseDown = true;
         this.mousePosition = mousePosition;
         this.prevMosuePosition = mousePosition;
+    }
+
+    onTouchStart (event) {
+        event.preventDefault();
+
+        this.mouseIn = true;
+        this.onMouseDown(event);
+    }
+
+    onTouchEnd (event) {
+        this.mouseDown = false;
+        this.mouseIn = false;
+        this.onMouseDown(event);
     }
 
     onMouseUp () {

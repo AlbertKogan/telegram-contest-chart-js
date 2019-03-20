@@ -5,6 +5,11 @@ class Base {
     height = 0
     layers = {}
     contexts = {}
+    touchDevice = false
+
+    constructor () {
+        this.touchDevice = 'ontouchstart' in document.documentElement;
+    }
 
     createLayer ({ layerID }) {
         const layer = document.createElement('canvas');
@@ -126,6 +131,18 @@ class Base {
             layerHeight: this.height, 
             maxValue: this.maxInColumns 
         });
+    }
+
+    getCursorPosition (event) {
+        let currentCursorPosition = this.mousePosition;
+
+        if (this.touchDevice && event.touches.length) {
+            currentCursorPosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+        } else {
+            currentCursorPosition = { x: event.clientX, y: event.clientY };
+        }
+
+        return currentCursorPosition;
     }
 }
 
