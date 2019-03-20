@@ -1,5 +1,7 @@
 import { maxInDataSet, converDataSetToPoints, convertToXAxisCoords } from '../common/utils';
 
+const outQuart = (n) => 1 - (--n * n * n * n);
+  
 class Base {
     layers = {}
     contexts = {}
@@ -7,6 +9,9 @@ class Base {
     parent = null
     parentSize = {}
     dpr = window.devicePixelRatio || 1
+    prevState = {}
+    tickCount = 30
+    iteration = 0
 
     constructor () {
         this.touchDevice = 'ontouchstart' in document.documentElement;
@@ -81,21 +86,45 @@ class Base {
 
     drawChart ({ layerID, points, colors }) {
         const chartContext = this.getLayerContext({ layerID });
+        const { prevState, chartHeight } = this;
+        const prevPoints = prevState.points || {};
+        let transition = outQuart(this.iteration / this.tickCount);
 
-        this.clearContext({ layerID })
+        this.clearContext({ layerID });
 
         for (let line in points) {
             chartContext.beginPath();
             chartContext.strokeStyle = colors[line];
             for (let i = 0; i < points[line].length - 1; i++) {
-                let p1 = points[line][i];
-                let p2 = points[line][i+1];
+                let current = i;
+                let next = i + 1;
+                let p1 = points[line][current];
+                let p2 = points[line][next];
                 
-                chartContext.moveTo(p1.x, p1.y);
-                chartContext.lineTo(p2.x, p2.y);
+                if (!prevPoints[line]) {
+                    chartContext.moveTo(p1.x, chartHeight - (chartHeight * transition - p1.y * transition));
+                    chartContext.lineTo(p2.x, chartHeight - (chartHeight * transition - p2.y * transition));
+                } else {
+                    let prevPoint1 = prevPoints[line][current];
+                    let prevPoint2 = prevPoints[line][next];
+
+                    //console.log('==>', prevPoint1.y === p1.y);
+
+                    chartContext.moveTo(p1.x, prevPoint1.y + (p1.y - prevPoint1.y) * transition);
+                    chartContext.lineTo(p2.x, prevPoint2.y + (p2.y - prevPoint2.y) * transition);
+
+                    // chartContext.moveTo(p1.x, p1.y * transition);
+                    // chartContext.lineTo(p2.x, p2.y * transition);
+                }
             }
             chartContext.stroke();
             chartContext.closePath();
+        }
+
+        this.iteration += 1;
+
+        if (this.iteration <= this.tickCount) {
+            window.requestAnimationFrame(this.drawChart.bind(this, { layerID, points, colors }));
         }
     }
 
@@ -127,13 +156,21 @@ class Base {
                 newDataSet[column] = columns[column].slice(fromIndex, toIndex);
             }
         }
+
+        // Keep prev state
+        this.prevState = {
+            ...this.prevState,
+            maxInColumns: this.maxInColumns,
+            xCoords: this.xCoords,
+            points: this.points
+        }
         
         this.maxInColumns = maxInDataSet({ dataSet: Object.values(newDataSet) });
         this.xCoords = convertToXAxisCoords({ layerWidth: this.width, data: newXAxisData });
         this.points = converDataSetToPoints({ 
             dataSet: newDataSet, 
             xCoords: this.xCoords, 
-            layerHeight: this.height, 
+            layerHeight: this.chartHeight, 
             maxValue: this.maxInColumns 
         });
     }

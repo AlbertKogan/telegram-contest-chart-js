@@ -38,6 +38,7 @@ class Preview extends Base {
         self._rawData = data;
         self.store = store;
         self.setParentSize();
+        self.chartHeight = self.parentSize.height;
 
         self.borderThreshold = self.borderThreshold * self.dpr;
 
@@ -94,6 +95,9 @@ class Preview extends Base {
         store.events.subscribe({ 
             eventName: 'stateChange', 
             callback: () => {
+                // Restore tickCount
+                self.iteration = 0;
+
                 self._visibleBounds = store.state.ui.visibleBounds;
                 self._activeCharts = store.state.ui.activeCharts;
 
@@ -200,6 +204,7 @@ class Preview extends Base {
         this.mouseDown = true;
         this.mousePosition = mousePosition;
         this.prevMosuePosition = mousePosition;
+        this.preventAnimation = true;
     }
 
     onTouchStart (event) {
@@ -207,16 +212,19 @@ class Preview extends Base {
 
         this.mouseIn = true;
         this.onMouseDown(event);
+        this.preventAnimation = true;
     }
 
     onTouchEnd (event) {
         this.mouseDown = false;
         this.mouseIn = false;
         this.onMouseDown(event);
+        this.preventAnimation = false;
     }
 
     onMouseUp () {
         this.mouseDown = false;
+        this.preventAnimation = false;
     }
 
     onMouseEnter () {

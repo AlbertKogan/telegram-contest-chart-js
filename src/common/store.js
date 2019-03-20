@@ -14,24 +14,7 @@ export default class Store {
         this.events = new PubSub();
         this.actions = actions;
         this.mutations = mutations;
-        this.state = this.wrapState(state);
-    }
-
-    /**
-     * @param {object} state
-     * @memberof Store
-     */
-    wrapState (state) {
-        const self = this;
-
-        return new Proxy(state, {
-            set: function (state, key, value, ...props) {
-                state[key] = value;
-                console.log(`stateChange: ${key}:`, value, props);
-                self.events.publish({ eventName: 'stateChange', data: self.state });
-                return state;
-            }
-        });
+        this.state = state;
     }
 
     /**
@@ -51,7 +34,7 @@ export default class Store {
           console.error(`Action "${actionKey} doesn't exist.`);
           return false;
         }
-        // console.log(`ACTION: ${actionKey}`);
+        console.log(`ACTION: ${actionKey}`);
         return handler(self, payload);
     }
 
@@ -70,7 +53,9 @@ export default class Store {
             return false;
         }
         
-        // Why spread doesn't work
-        return self.state = Object.assign(self.state, mutation(self.state, payload));
+        const newState = Object.assign(self.state, mutation(self.state, payload));
+
+        self.events.publish({ eventName: 'stateChange', data: newState });      
+        return newState;
     }
 }

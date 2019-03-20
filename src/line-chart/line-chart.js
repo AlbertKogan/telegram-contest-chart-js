@@ -4,6 +4,13 @@ import { throttle, convertToXAxisCoords } from '../common/utils';
 
 import commonStyles from './../style.scss';
 
+const TICK_HEIGHT = 15;
+const TICK_FONT_SIZE = 15;
+const FONT_COLOR = 'rgb(150, 162, 170)';
+const AXIS_COLOR = 'rgb(236, 240, 243)';
+const LINE_COLOR = 'rgb(242, 244, 245)';
+const HOVER_LINE_COLOR = 'rgb(223, 230, 235)';
+
 class LineChart extends Base {
     _rawData = {}
     _visibleBounds = { fromIndex: 0, toIndex: 0 }
@@ -22,6 +29,8 @@ class LineChart extends Base {
         self.store = store;
 
         self.setParentSize();
+        // Do it better
+        self.chartHeight = self.parentSize.height - TICK_HEIGHT;
 
         const chartLayer = self.createLayer({ layerID: LINE_CHART_LAYER });
         const xAxisLayer = self.createLayer({ layerID: X_AXIS_LAYER });
@@ -64,11 +73,13 @@ class LineChart extends Base {
         store.events.subscribe({ 
             eventName: 'stateChange', 
             callback: () => {
+                self.iteration = 0;
+
                 self._visibleBounds = store.state.ui.visibleBounds;
                 self._activeCharts = store.state.ui.activeCharts;
 
                 self.recalculate({ showFullRange: false });
-                self.drawScene();
+                window.requestAnimationFrame(self.drawScene.bind(self));
             }
         });
     }
@@ -104,14 +115,14 @@ class LineChart extends Base {
     }
 
     drawXAxis () {
-        const { height, width } = this;
+        const { chartHeight, width } = this;
         const xAxisLayer = this.getLayerContext({ layerID: X_AXIS_LAYER });
         this.clearContext({ layerID: X_AXIS_LAYER });
 
-        xAxisLayer.fillStyle = "#c82124";
+        xAxisLayer.strokeStyle = AXIS_COLOR;
         xAxisLayer.beginPath();
-        xAxisLayer.moveTo(0, height - 50);
-        xAxisLayer.lineTo(width, height - 50);
+        xAxisLayer.moveTo(0, chartHeight - TICK_FONT_SIZE);
+        xAxisLayer.lineTo(width, chartHeight - TICK_FONT_SIZE);
         xAxisLayer.stroke();
         xAxisLayer.fill();
         xAxisLayer.closePath();
@@ -135,11 +146,11 @@ class LineChart extends Base {
     }
 
     drawXAxisTicks () {
-        const { height, width, xCoords, _rawData, dateLabel, _averageLabelWdth, visibleBounds } = this;
+        const { chartHeight, width, xCoords, _rawData, dateLabel, _averageLabelWdth, visibleBounds } = this;
         const xAxisLayer = this.getLayerContext({ layerID: X_AXIS_LAYER });
 
-        xAxisLayer.font = '15px Helvetica';
-        xAxisLayer.fillStyle = "black";
+        xAxisLayer.font = `lighter ${TICK_FONT_SIZE}px Helvetica`;
+        xAxisLayer.fillStyle = FONT_COLOR;
 
         // Visible count of labels
         const maxPeraxis = Math.round(width / (_averageLabelWdth + 40));
@@ -156,7 +167,7 @@ class LineChart extends Base {
             xAxisLayer.fillText(
                 label, 
                 xCoords[_x], 
-                height - 15
+                chartHeight
             );
         }
     }
@@ -169,7 +180,7 @@ class LineChart extends Base {
 
         this.clearContext({ layerID: LINES_LAYER });
 
-        linesLayer.fillStyle = "#c82124";
+        linesLayer.strokeStyle = LINE_COLOR;
 
         linesLayer.beginPath();
         while (h >= 0) {
@@ -178,7 +189,6 @@ class LineChart extends Base {
             linesLayer.lineTo(width, h);
         }
         linesLayer.stroke();
-        linesLayer.fill();
         linesLayer.closePath();
     }
 
@@ -209,7 +219,7 @@ class LineChart extends Base {
     }
 
     drawOnHover () {
-        const { _activeIndex, xCoords, height, _rawData, points } = this;
+        const { _activeIndex, xCoords, chartHeight, _rawData, points } = this;
         const hoverableLayerContext = this.getLayerContext({ layerID: HOVERABLE_LAYER });
         const colors = _rawData.colors;
 
@@ -219,10 +229,10 @@ class LineChart extends Base {
             let x = xCoords[_activeIndex];
 
             hoverableLayerContext.fillStyle = "white";
-            hoverableLayerContext.strokeStyle = "#000";
+            hoverableLayerContext.strokeStyle = HOVER_LINE_COLOR;
             hoverableLayerContext.beginPath();
             hoverableLayerContext.moveTo(x, 0);
-            hoverableLayerContext.lineTo(x, height);
+            hoverableLayerContext.lineTo(x, chartHeight - TICK_FONT_SIZE);
             hoverableLayerContext.stroke();
             hoverableLayerContext.closePath();
 
@@ -259,7 +269,6 @@ class LineChart extends Base {
 
             // Check boundaries
             if (x + tooltipWidth > width) {
-                console.log('right');
                 x -= tooltipWidth + 40;
             }
 
@@ -283,8 +292,8 @@ class LineChart extends Base {
             tooltipLayerContext.closePath();
    
             // TODO: move it to separate handler
-            tooltipLayerContext.font = '15px Helvetica';
-            tooltipLayerContext.fillStyle = "black";
+            tooltipLayerContext.font = 'lighter 15px Helvetica';
+            tooltipLayerContext.fillStyle = FONT_COLOR;
             tooltipLayerContext.fillText(
                 date, 
                 x + 25,
