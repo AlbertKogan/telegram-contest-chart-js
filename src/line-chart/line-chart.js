@@ -1,6 +1,6 @@
 import Base from '../common/base';
 import { LINE_CHART_LAYER, X_AXIS_LAYER, LINES_LAYER, HOVERABLE_LAYER, TOOLTIP_LAYER } from './constants';
-import { throttle } from '../common/utils';
+import { throttle, convertToXAxisCoords } from '../common/utils';
 
 import commonStyles from './../style.scss';
 
@@ -52,6 +52,9 @@ class LineChart extends Base {
         self._visibleBounds = store.state.ui.visibleBounds;
         self._activeCharts = store.state.ui.activeCharts;
 
+        self._xCoordsAll = convertToXAxisCoords({ layerWidth: self.width, data: self._rawData.x });
+
+        this.setAverageLabelWidth();
         self.recalculate({ showFullRange: false });
         self.drawScene();
 
@@ -68,10 +71,14 @@ class LineChart extends Base {
         });
     }
 
-    dateLabel (UNIXDate) {
+    dateLabel ({ UNIXDate, additionalOtions = {} }) {
         const date = new Date(UNIXDate);
 
-        return date.toLocaleDateString();
+        return date.toLocaleDateString('en-US', {
+            month: 'short', 
+            day: 'numeric',
+            ...additionalOtions
+        });
     }
 
     get visibleBounds () {
@@ -98,30 +105,53 @@ class LineChart extends Base {
         xAxisLayer.beginPath();
         xAxisLayer.moveTo(0, height - 50);
         xAxisLayer.lineTo(width, height - 50);
-
-        this.drawXAxisTicks();
-
         xAxisLayer.stroke();
         xAxisLayer.fill();
         xAxisLayer.closePath();
+
+        xAxisLayer.beginPath();
+        this.drawXAxisTicks();
+        xAxisLayer.closePath();
+    }
+
+    setAverageLabelWidth () {
+        const xAxisLayer = this.getLayerContext({ layerID: X_AXIS_LAYER });
+        const { _rawData, dateLabel } = this;
+
+        const averageLabelWidth = _rawData.x.reduce((acc, x, index) => {
+            const label = dateLabel({ UNIXDate: _rawData.x[index] });
+            const textSize = xAxisLayer.measureText(label);
+            return acc + textSize.width;
+        }, 0) / _rawData.x.length;
+
+        this._averageLabelWdth = Math.round(averageLabelWidth);
     }
 
     drawXAxisTicks () {
-        // TODO: add sifter
-        const { height, xCoords, _rawData, dateLabel } = this;
+        const { height, width, xCoords, _rawData, dateLabel, _averageLabelWdth, visibleBounds } = this;
         const xAxisLayer = this.getLayerContext({ layerID: X_AXIS_LAYER });
 
         xAxisLayer.font = '15px Helvetica';
         xAxisLayer.fillStyle = "black";
-        xCoords.map((x, index) => {
-            const label = dateLabel(_rawData.x[index]);
-            const textSize = xAxisLayer.measureText(label);
+
+        // Visible count of labels
+        const maxPeraxis = Math.round(width / (_averageLabelWdth + 40));
+
+        // Step shoukd be dynamic according to visible window size
+        let step = Math.round(xCoords.length / maxPeraxis);
+
+        // Visible part
+        const sliced = _rawData.x.slice(visibleBounds.fromIndex, visibleBounds.toIndex);
+        // --- Upper everithing OK -------
+
+        for (let _x = 0; _x <= xCoords.length; _x += step) {
+            const label = dateLabel({UNIXDate: sliced[_x]});
             xAxisLayer.fillText(
                 label, 
-                x - textSize.width / 2, 
+                xCoords[_x], 
                 height - 15
             );
-        });
+        }
     }
 
     drawLines () {
@@ -206,7 +236,7 @@ class LineChart extends Base {
 
     drawTooltip () {
         const tooltipLayerContext = this.getLayerContext({ layerID: TOOLTIP_LAYER });
-        const { _activeIndex, xCoords } = this;
+        const { _activeIndex, xCoords, _rawData, dateLabel } = this;
 
         var cornerRadius = { upperLeft: 10, upperRight: 10, lowerLeft: 10, lowerRight: 10 };
         const width = 200;
@@ -218,10 +248,12 @@ class LineChart extends Base {
         this.clearContext({ layerID: TOOLTIP_LAYER });
 
         if (_activeIndex > -1) {
+            const date = dateLabel({ UNIXDate: _rawData.x[_activeIndex], additionalOtions: { weekday: 'short' } });
+
             tooltipLayerContext.beginPath();
-            tooltipLayerContext.shadowBlur = 6;
-            tooltipLayerContext.shadowOffsetY = 2;
-            tooltipLayerContext.shadowColor = "#969696";
+            // tooltipLayerContext.shadowBlur = 6;
+            // tooltipLayerContext.shadowOffsetY = 2;
+            // tooltipLayerContext.shadowColor = "#969696";
             tooltipLayerContext.moveTo(x + cornerRadius.upperLeft, y);
             tooltipLayerContext.lineTo(x + width - cornerRadius.upperRight, y);
             tooltipLayerContext.quadraticCurveTo(x + width, y, x + width, y + cornerRadius.upperRight);
@@ -231,13 +263,38 @@ class LineChart extends Base {
             tooltipLayerContext.quadraticCurveTo(x, y + height, x, y + height - cornerRadius.lowerLeft);
             tooltipLayerContext.lineTo(x, y + cornerRadius.upperLeft);
             tooltipLayerContext.quadraticCurveTo(x, y, x + cornerRadius.upperLeft, y);
-
             tooltipLayerContext.fillStyle = "white";
             tooltipLayerContext.strokeStyle = "#969696";
-
             tooltipLayerContext.fill();
             tooltipLayerContext.stroke();
             tooltipLayerContext.closePath();
+
+            // TODO: move it to separate handler
+            tooltipLayerContext.font = '15px Helvetica';
+            tooltipLayerContext.fillStyle = "black";
+            tooltipLayerContext.fillText(
+                date, 
+                x + 25,
+                y + 25
+            );
+            tooltipLayerContext.save();
+
+            tooltipLayerContext.fillStyle = _rawData.colors['y0'];
+            tooltipLayerContext.fillText(
+                _rawData.columns['y0'][_activeIndex], 
+                x + 25,
+                y + 55
+            );
+            tooltipLayerContext.save();
+
+
+            tooltipLayerContext.fillStyle = _rawData.colors['y1'];
+            tooltipLayerContext.fillText(
+                _rawData.columns['y1'][_activeIndex], 
+                x + 60,
+                y + 55
+            );
+            tooltipLayerContext.save();
         }
     }
 }
