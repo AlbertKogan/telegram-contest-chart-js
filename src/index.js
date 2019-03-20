@@ -61,11 +61,21 @@ const button2 = new Button({ store, id: 'y1' });
 
 const _data = processData(data);
 
-const preview = new Preview({ width: 500, height: 100, store, data: _data[0] });
-const lineChart = new LineChart({ width: 500, height: 500, store, data: _data[0] });
-
 previewWrapper.classList.add(styles.previewWrapper);
 lineChartWrapper.classList.add(styles.chartWrapper);
+chartWrapper.appendChild(lineChartWrapper);
+chartWrapper.appendChild(previewWrapper);
+
+const preview = new Preview({ 
+    parent: previewWrapper,
+    store, 
+    data: _data[0] 
+});
+const lineChart = new LineChart({
+    parent: lineChartWrapper,
+    store, 
+    data: _data[0] 
+});
 
 lineChartWrapper.appendChild(lineChart.getLayer({ layerID: X_AXIS_LAYER }));
 lineChartWrapper.appendChild(lineChart.getLayer({ layerID: LINES_LAYER }));
@@ -76,8 +86,5 @@ lineChartWrapper.appendChild(lineChart.getLayer({ layerID: TOOLTIP_LAYER }));
 previewWrapper.appendChild(preview.getLayer({ layerID: BASE_LAYER }));
 previewWrapper.appendChild(preview.getLayer({ layerID: WINDOW_LAYER }));
 
-chartWrapper.appendChild(lineChartWrapper);
-chartWrapper.appendChild(previewWrapper);
 chartWrapper.appendChild(button.buttonWrapper);
 chartWrapper.appendChild(button2.buttonWrapper);
-

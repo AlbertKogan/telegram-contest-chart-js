@@ -12,9 +12,14 @@ import {
 } from './constants';
 import { SET_VISIBLE_BOUNDS } from './../common/actions';
 
+const OVERLAY_COLOR = 'rgba(245, 249, 251, 0.8)';
+const BORDER_COLOR = 'rgba(221, 234, 243, 0.9)'
+const BORDER_WIDTH = 10;
+const WINDOW_PADDING = BORDER_WIDTH / 2;
+const MIN_WINDOW_WIDTH = 50;
+
 class Preview extends Base {
     borderThreshold = 10;
-
     windowPosition = {}
     mousePosition = { x: 0, y: 0 }
     prevMosuePosition = { x: 0, y: 0 }
@@ -25,14 +30,16 @@ class Preview extends Base {
     hoverType = null
     _delta = 0
 
-    constructor ({ width, height, data, store }) {
+    constructor ({ parent, data, store }) {
         super();
         const self = this;
 
-        self.width = width;
-        self.height = height;
+        self.parent = parent;
         self._rawData = data;
         self.store = store;
+        self.setParentSize();
+
+        self.borderThreshold = self.borderThreshold * self.dpr;
 
         // Default state
         self._visibleBounds = store.state.ui.visibleBounds;
@@ -42,12 +49,12 @@ class Preview extends Base {
         const windowLayer = self.createLayer({ layerID: WINDOW_LAYER });
         const baseLayer = self.createLayer({ layerID: BASE_LAYER });
 
-        windowLayer.width = width;
-        windowLayer.height = height;
+        windowLayer.width = self.width;
+        windowLayer.height = self.height;
         windowLayer.classList.add(styles.preview, styles.previewWindow);
 
-        baseLayer.width = width;
-        baseLayer.height = height;
+        baseLayer.width = self.width;
+        baseLayer.height = self.height;
         baseLayer.classList.add(styles.preview, styles.previewBase);
 
         self.recalculate({ showFullRange: true });
@@ -56,13 +63,11 @@ class Preview extends Base {
             layerID: WINDOW_LAYER,
             settings: {
                 globalCompositeOperation: 'destination-over',
-                strokeStyle: 'rgba(0, 153, 255, 0.8)',
-                lineWidth: 10
             }
         });
 
         self.windowPosition = {
-            x: 0,
+            x: WINDOW_PADDING,
             y: 0,
             width: 200,
             height: 100
@@ -73,11 +78,18 @@ class Preview extends Base {
 
         self.drawWindow();
 
-        self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mousemove', handler: self.throttledMosueMove.bind(self) });
-        self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseout', handler: self.onMouseOut.bind(self) });
-        self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseenter', handler: self.onMouseEnter.bind(self) });
-        self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mousedown', handler: self.onMouseDown.bind(self) });
-        self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseup', handler: self.onMouseUp.bind(self) });
+        if (self.touchDevice) {
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'touchmove', handler: self.throttledMosueMove.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'touchstart', handler: self.onTouchStart.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'touchend', handler: self.onTouchEnd.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'touchcancel', handler: self.onTouchEnd.bind(self) });
+        } else {
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mousemove', handler: self.throttledMosueMove.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseout', handler: self.onMouseOut.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseenter', handler: self.onMouseEnter.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mousedown', handler: self.onMouseDown.bind(self) });
+            self.withHandler({ layerID: WINDOW_LAYER, handlerType: 'mouseup', handler: self.onMouseUp.bind(self) });
+        }
 
         store.events.subscribe({ 
             eventName: 'stateChange', 
@@ -92,7 +104,7 @@ class Preview extends Base {
     }
 
     setHoverType ({ event }) {
-        const mousePosition = { x: event.clientX, y: event.clientY };
+        const mousePosition = this.getCursorPosition(event);
         const { windowPosition, borderThreshold } = this;
 
         // detect right border hover
@@ -115,10 +127,16 @@ class Preview extends Base {
     }
 
     onMouseMove (event) {
-        const currentMousePosition = { x: event.clientX, y: event.clientY };
+        event.preventDefault();
+        const currentMousePosition = this.getCursorPosition(event);
         const { drawWindow, mouseDown, mousePosition } = this;
         const windowLayer = this.getLayer({ layerID: WINDOW_LAYER });
-        const hoverType = this.setHoverType({ event });
+        let hoverType = this.hoverType;
+
+        // Keep hover type on mouse down
+        if (!hoverType || !mouseDown) {
+            hoverType = this.setHoverType({ event });
+        }
 
         switch (hoverType) {
             case HOVER_LEFT_BORDER:
@@ -175,11 +193,26 @@ class Preview extends Base {
 
 
     onMouseDown (event) {
-        const mousePosition = { x: event.clientX, y: event.clientY };
+        event.preventDefault();
+
+        const mousePosition = this.getCursorPosition(event);
 
         this.mouseDown = true;
         this.mousePosition = mousePosition;
         this.prevMosuePosition = mousePosition;
+    }
+
+    onTouchStart (event) {
+        event.preventDefault();
+
+        this.mouseIn = true;
+        this.onMouseDown(event);
+    }
+
+    onTouchEnd (event) {
+        this.mouseDown = false;
+        this.mouseIn = false;
+        this.onMouseDown(event);
     }
 
     onMouseUp () {
@@ -195,9 +228,7 @@ class Preview extends Base {
     }
 
     drawWindow () {
-        const { 
-            width, 
-            height, 
+        const {
             windowPosition, 
             transform, 
             delta,
@@ -205,35 +236,41 @@ class Preview extends Base {
         } = this;
         const windowLayerContext = this.getLayerContext({ layerID: WINDOW_LAYER });
 
-        windowLayerContext.clearRect(0, 0, width, height);
-        windowLayerContext.beginPath();
-
         let newWindowPosition = windowPosition;
+        let newWidth;
 
+        this.clearContext({ layerID: WINDOW_LAYER });
         if (transform === 'move') {
             newWindowPosition = {
                 ...newWindowPosition,
                 x: delta
             };
-            windowLayerContext.rect(...Object.values(newWindowPosition));
         } else if (transform === 'left') {
+            newWidth = windowPosition.width - mouseDelta;
             newWindowPosition = {
                 ...newWindowPosition,
                 x: windowPosition.x + mouseDelta,
-                width: windowPosition.width - mouseDelta,
+                width: newWidth < MIN_WINDOW_WIDTH ? MIN_WINDOW_WIDTH : newWidth
             };
         } else if (transform === 'right') {
+            newWidth = windowPosition.width + mouseDelta;
             newWindowPosition = {
-                ...newWindowPosition,
-                width: windowPosition.width + mouseDelta,
+                ...newWindowPosition, 
+                width: newWidth < MIN_WINDOW_WIDTH ? MIN_WINDOW_WIDTH : newWidth
             };
         }
 
         this.windowPosition = newWindowPosition;
+        windowLayerContext.strokeStyle = BORDER_COLOR;
+        windowLayerContext.lineWidth = BORDER_WIDTH;
+        windowLayerContext.strokeRect(
+            newWindowPosition.x,
+            newWindowPosition.y,
+            newWindowPosition.width,
+            newWindowPosition.height    
+        );
+        windowLayerContext.save();
 
-        windowLayerContext.rect(...Object.values(newWindowPosition));
-        windowLayerContext.stroke();
-        windowLayerContext.closePath();
         this.sliceVisiblePart();
         this.drawOverlay();
     }
@@ -244,10 +281,9 @@ class Preview extends Base {
             height, 
             windowPosition
         } = this;
-
         const windowLayerContext = this.getLayerContext({ layerID: WINDOW_LAYER });
 
-        windowLayerContext.fillStyle = 'rgba(0, 153, 255, 0.5)';
+        windowLayerContext.fillStyle = OVERLAY_COLOR;
         // Right overlay
         windowLayerContext.fillRect(
             windowPosition.width + windowPosition.x, 

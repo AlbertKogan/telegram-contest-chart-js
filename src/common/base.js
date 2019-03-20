@@ -1,10 +1,16 @@
 import { maxInDataSet, converDataSetToPoints, convertToXAxisCoords } from '../common/utils';
 
 class Base {
-    width = 0
-    height = 0
     layers = {}
     contexts = {}
+    touchDevice = false
+    parent = null
+    parentSize = {}
+    dpr = window.devicePixelRatio || 1
+
+    constructor () {
+        this.touchDevice = 'ontouchstart' in document.documentElement;
+    }
 
     createLayer ({ layerID }) {
         const layer = document.createElement('canvas');
@@ -14,12 +20,16 @@ class Base {
             [layerID]: layer
         }
 
+        layer.width = this.parentSize.width * this.dpr;
+        layer.height = this.parentSize.height * this.dpr;
+
         const context = layer.getContext('2d');
-        context.scale(2,2);
+        
+        context.scale(this.dpr, this.dpr);
         this.contexts = {
             ...this.contexts,
             [layerID]: context
-        }
+        };
 
         return layer;
     }
@@ -126,6 +136,32 @@ class Base {
             layerHeight: this.height, 
             maxValue: this.maxInColumns 
         });
+    }
+
+    getCursorPosition (event) {
+        let currentCursorPosition = this.mousePosition;
+
+        if (this.touchDevice && event.touches.length) {
+            currentCursorPosition = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+        } else {
+            currentCursorPosition = { x: event.clientX, y: event.clientY };
+        }
+
+        return currentCursorPosition;
+    }
+
+    setParentSize () {
+        this.parentSize = this.parent.getBoundingClientRect();
+
+        return this.parentSize;
+    }
+
+    get width () {
+        return this.parentSize.width;
+    }
+
+    get height () {
+        return this.parentSize.height;
     }
 }
 
