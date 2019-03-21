@@ -13,7 +13,9 @@ import {
 import { SET_VISIBLE_BOUNDS } from './../common/actions'
 
 const OVERLAY_COLOR = 'rgba(245, 249, 251, 0.8)'
+const NIGHT_OVERLAY_COLOR = 'rgba(31, 42, 55, 0.6)'
 const BORDER_COLOR = 'rgba(221, 234, 243, 0.9)'
+const NIGHT_BORDER_COLOR = 'rgba(65, 86, 106, 0.9)'
 const BORDER_WIDTH = 10
 const WINDOW_PADDING = BORDER_WIDTH / 2
 const MIN_WINDOW_WIDTH = 50
@@ -45,6 +47,7 @@ class Preview extends Base {
         // Default state
         self._visibleBounds = store.state.ui.visibleBounds
         self._activeCharts = store.state.ui.activeCharts
+        self.nightMode = store.state.ui.nightMode
 
         // Create layers: base, window, top layer
         const windowLayer = self.createLayer({ layerID: WINDOW_LAYER })
@@ -140,7 +143,9 @@ class Preview extends Base {
 
                 self._visibleBounds = store.state.ui.visibleBounds
                 self._activeCharts = store.state.ui.activeCharts
+                self.nightMode = store.state.ui.nightMode
 
+                self.drawWindow()
                 self.recalculate({ showFullRange: true })
                 self.drawChart({
                     layerID: BASE_LAYER,
@@ -220,6 +225,7 @@ class Preview extends Base {
             this.animationID = window.requestAnimationFrame(
                 drawWindow.bind(this)
             )
+            this.sliceVisiblePart()
         }
     }
 
@@ -288,7 +294,7 @@ class Preview extends Base {
     }
 
     drawWindow() {
-        const { windowPosition, transform, delta, mouseDelta } = this
+        const { windowPosition, transform, delta, mouseDelta, nightMode } = this
         const windowLayerContext = this.getLayerContext({
             layerID: WINDOW_LAYER,
         })
@@ -320,7 +326,7 @@ class Preview extends Base {
         }
 
         this.windowPosition = newWindowPosition
-        windowLayerContext.strokeStyle = BORDER_COLOR
+        windowLayerContext.strokeStyle = nightMode ? NIGHT_BORDER_COLOR : BORDER_COLOR
         windowLayerContext.lineWidth = BORDER_WIDTH
         windowLayerContext.strokeRect(
             newWindowPosition.x,
@@ -330,17 +336,16 @@ class Preview extends Base {
         )
         windowLayerContext.save()
 
-        this.sliceVisiblePart()
         this.drawOverlay()
     }
 
     drawOverlay() {
-        const { width, height, windowPosition } = this
+        const { width, height, windowPosition, nightMode } = this
         const windowLayerContext = this.getLayerContext({
             layerID: WINDOW_LAYER,
         })
 
-        windowLayerContext.fillStyle = OVERLAY_COLOR
+        windowLayerContext.fillStyle = nightMode ? NIGHT_OVERLAY_COLOR : OVERLAY_COLOR 
         // Right overlay
         windowLayerContext.fillRect(
             windowPosition.width + windowPosition.x,

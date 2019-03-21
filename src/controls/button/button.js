@@ -1,4 +1,6 @@
 import styles from './style.scss'
+import commonStyles from './../../style.scss'
+
 import { TOGGLE_ACTIVE_CHART } from '../../common/actions'
 
 class Button {
@@ -11,6 +13,7 @@ class Button {
         self._id = id
         self.buttonWrapper = document.createElement('div')
         self.buttonWrapper.classList.add(styles.buttonWrapper)
+        self.buttonWrapper.classList.add(commonStyles.buttonWrapper)
         self.buttonWrapper.classList.add(styles.active)
 
         const text = document.createElement('div')
@@ -34,7 +37,9 @@ class Button {
         label.setAttribute('viewBox', '0 0 52 52')
         circle.setAttribute('cx', 26)
         circle.setAttribute('cy', 26)
-        circle.setAttribute('r', 25)
+        circle.setAttribute('r', 24)
+        circle.setAttribute('stroke', store.state.orm.data[0].colors[id])
+        circle.setAttribute('fill', store.state.orm.data[0].colors[id])
         icon.setAttribute('d', 'M14.1 27.2l7.1 7.2 16.7-16.8')
 
         label.appendChild(circle)

@@ -12,10 +12,19 @@ import commonStyles from './../style.scss'
 
 const TICK_HEIGHT = 15
 const TICK_FONT_SIZE = 15
+
 const FONT_COLOR = 'rgb(150, 162, 170)'
+const NIGHT_FONT_COLOR = 'rgb(85 ,103, 119)'
 const AXIS_COLOR = 'rgb(236, 240, 243)'
+const NIGHT_AXIS_COLOR = 'rgb(49, 61, 76)'
 const LINE_COLOR = 'rgb(242, 244, 245)'
+const NIGHT_LINE_COLOR = 'rgb(41, 53, 67)'
 const HOVER_LINE_COLOR = 'rgb(223, 230, 235)'
+const NIGHT_HOVER_LINE_COLOR = 'rgb(60, 74, 89)'
+const TOOLTIP_BACKGROUND = 'white';
+const NIGHT_TOOLTIP_BACKGROUND = 'rgb(37, 50, 64)';
+const DOT_FILL = 'white';
+const NIGHT_DOT_FILL = 'rgb(36, 47, 61)'
 
 class LineChart extends Base {
     _rawData = {}
@@ -94,6 +103,7 @@ class LineChart extends Base {
 
                 self._visibleBounds = store.state.ui.visibleBounds
                 self._activeCharts = store.state.ui.activeCharts
+                self.nightMode = store.state.ui.nightMode
 
                 self.recalculate({ showFullRange: false })
                 window.requestAnimationFrame(self.drawScene.bind(self))
@@ -136,11 +146,11 @@ class LineChart extends Base {
     }
 
     drawXAxis() {
-        const { chartHeight, width } = this
+        const { chartHeight, width, nightMode } = this
         const xAxisLayer = this.getLayerContext({ layerID: X_AXIS_LAYER })
         this.clearContext({ layerID: X_AXIS_LAYER })
 
-        xAxisLayer.strokeStyle = AXIS_COLOR
+        xAxisLayer.strokeStyle = nightMode ? NIGHT_AXIS_COLOR : AXIS_COLOR
         xAxisLayer.beginPath()
         xAxisLayer.moveTo(0, chartHeight - TICK_FONT_SIZE)
         xAxisLayer.lineTo(width, chartHeight - TICK_FONT_SIZE)
@@ -176,11 +186,12 @@ class LineChart extends Base {
             dateLabel,
             _averageLabelWdth,
             visibleBounds,
+            nightMode
         } = this
         const xAxisLayer = this.getLayerContext({ layerID: X_AXIS_LAYER })
 
         xAxisLayer.font = `lighter ${TICK_FONT_SIZE}px Helvetica`
-        xAxisLayer.fillStyle = FONT_COLOR
+        xAxisLayer.fillStyle = nightMode ? NIGHT_FONT_COLOR : FONT_COLOR
 
         // Visible count of labels
         const maxPeraxis = Math.round(width / (_averageLabelWdth + 40))
@@ -202,14 +213,14 @@ class LineChart extends Base {
     }
 
     drawLines() {
-        const { height, width } = this
+        const { height, width, nightMode } = this
         const linesLayer = this.getLayerContext({ layerID: LINES_LAYER })
 
         let h = height - 50
 
         this.clearContext({ layerID: LINES_LAYER })
 
-        linesLayer.strokeStyle = LINE_COLOR
+        linesLayer.strokeStyle = nightMode ? NIGHT_LINE_COLOR : LINE_COLOR
 
         linesLayer.beginPath()
         while (h >= 0) {
@@ -252,7 +263,7 @@ class LineChart extends Base {
     }
 
     drawOnHover() {
-        const { _activeIndex, xCoords, chartHeight, _rawData, points } = this
+        const { _activeIndex, xCoords, chartHeight, _rawData, points, nightMode } = this
         const hoverableLayerContext = this.getLayerContext({
             layerID: HOVERABLE_LAYER,
         })
@@ -263,9 +274,10 @@ class LineChart extends Base {
         if (_activeIndex > -1) {
             let x = xCoords[_activeIndex]
 
-            hoverableLayerContext.fillStyle = 'white'
-            hoverableLayerContext.strokeStyle = HOVER_LINE_COLOR
+            hoverableLayerContext.fillStyle = nightMode ? NIGHT_DOT_FILL : DOT_FILL
+            hoverableLayerContext.strokeStyle = nightMode ? NIGHT_HOVER_LINE_COLOR : HOVER_LINE_COLOR
             hoverableLayerContext.beginPath()
+            hoverableLayerContext.lineWidth = 1
             hoverableLayerContext.moveTo(x, 0)
             hoverableLayerContext.lineTo(x, chartHeight - TICK_FONT_SIZE)
             hoverableLayerContext.stroke()
@@ -274,9 +286,9 @@ class LineChart extends Base {
             for (let point in points) {
                 let y = points[point][_activeIndex].y
                 hoverableLayerContext.strokeStyle = colors[point]
-
+                hoverableLayerContext.lineWidth = 4
                 hoverableLayerContext.beginPath()
-                hoverableLayerContext.arc(x, y, 5, 0, 2 * Math.PI)
+                hoverableLayerContext.arc(x, y, 4, 0, 2 * Math.PI)
                 hoverableLayerContext.stroke()
                 hoverableLayerContext.fill()
                 hoverableLayerContext.closePath()
@@ -290,7 +302,7 @@ class LineChart extends Base {
         const tooltipLayerContext = this.getLayerContext({
             layerID: TOOLTIP_LAYER,
         })
-        const { _activeIndex, xCoords, _rawData, dateLabel, width } = this
+        const { _activeIndex, xCoords, _rawData, dateLabel, width, nightMode } = this
 
         var cornerRadius = {
             upperLeft: 10,
@@ -356,7 +368,7 @@ class LineChart extends Base {
                 x + cornerRadius.upperLeft,
                 y
             )
-            tooltipLayerContext.fillStyle = 'white'
+            tooltipLayerContext.fillStyle = nightMode ? NIGHT_TOOLTIP_BACKGROUND : TOOLTIP_BACKGROUND
             tooltipLayerContext.strokeStyle = '#969696'
             tooltipLayerContext.fill()
             tooltipLayerContext.stroke()
@@ -364,7 +376,7 @@ class LineChart extends Base {
 
             // TODO: move it to separate handler
             tooltipLayerContext.font = 'lighter 15px Helvetica'
-            tooltipLayerContext.fillStyle = FONT_COLOR
+            tooltipLayerContext.fillStyle = nightMode ? NIGHT_FONT_COLOR : FONT_COLOR
             tooltipLayerContext.fillText(date, x + 25, y + 25)
             tooltipLayerContext.save()
 

@@ -59,6 +59,7 @@ export default class Store {
         )
 
         self.events.publish({ eventName: 'stateChange', data: newState })
+        console.log('newState', newState);
         return newState
     }
 }
