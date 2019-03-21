@@ -1,33 +1,39 @@
-import data from './assets/chart_data.json';
+import data from './assets/chart_data.json'
 import styles from './style.scss'
 
-import Preview from './preview/preview';
-import LineChart from './line-chart/line-chart';
-import Button from './controls/button/button';
+import Preview from './preview/preview'
+import LineChart from './line-chart/line-chart'
+import Button from './controls/button/button'
 
-import { 
-    WINDOW_LAYER,
-    BASE_LAYER
-} from './preview/constants';
+import { WINDOW_LAYER, BASE_LAYER } from './preview/constants'
 
-import { LINE_CHART_LAYER, X_AXIS_LAYER, LINES_LAYER, HOVERABLE_LAYER, TOOLTIP_LAYER } from './line-chart/constants';
-import Store from './common/store';
-import actions from './common/actions';
-import mutations from './common/mutations';
+import {
+    LINE_CHART_LAYER,
+    X_AXIS_LAYER,
+    LINES_LAYER,
+    HOVERABLE_LAYER,
+    TOOLTIP_LAYER,
+} from './line-chart/constants'
+import Store from './common/store'
+import actions from './common/actions'
+import mutations from './common/mutations'
 
-const processData = (data) =>
-    data.map((item) => {
-        const { x, ...columns } = item.columns.reduce((acc, current) => ({
-            ...acc,
-            [current[0]]: current.slice(1)
-        }), {});
+const processData = data =>
+    data.map(item => {
+        const { x, ...columns } = item.columns.reduce(
+            (acc, current) => ({
+                ...acc,
+                [current[0]]: current.slice(1),
+            }),
+            {}
+        )
 
         return {
             ...item,
             x,
-            columns
-        };
-    });
+            columns,
+        }
+    })
 
 const INITIAL_STATE = {
     ui: {
@@ -35,56 +41,56 @@ const INITIAL_STATE = {
         visibleBounds: {},
         // TODO: needs better way to provide active
         activeCharts: {
-            'y0': true,
-            'y1': true
-        }
+            y0: true,
+            y1: true,
+        },
     },
     orm: {
         _rawData: data,
-        data: processData(data)
-    }
-};
+        data: processData(data),
+    },
+}
 
 const store = new Store({
-    actions, 
-    mutations, 
-    state: INITIAL_STATE
-});
+    actions,
+    mutations,
+    state: INITIAL_STATE,
+})
 
-window.chartStore = store;
+window.chartStore = store
 
-const chartWrapper = document.getElementById('chartWrapper');
-const previewWrapper = document.createElement('div');
-const lineChartWrapper = document.createElement('div');
-const button = new Button({ store, id: 'y0' });
-const button2 = new Button({ store, id: 'y1' });
+const chartWrapper = document.getElementById('chartWrapper')
+const previewWrapper = document.createElement('div')
+const lineChartWrapper = document.createElement('div')
+const button = new Button({ store, id: 'y0' })
+const button2 = new Button({ store, id: 'y1' })
 
-const _data = processData(data);
+const _data = processData(data)
 
-previewWrapper.classList.add(styles.previewWrapper);
-lineChartWrapper.classList.add(styles.chartWrapper);
-chartWrapper.appendChild(lineChartWrapper);
-chartWrapper.appendChild(previewWrapper);
+previewWrapper.classList.add(styles.previewWrapper)
+lineChartWrapper.classList.add(styles.chartWrapper)
+chartWrapper.appendChild(lineChartWrapper)
+chartWrapper.appendChild(previewWrapper)
 
-const preview = new Preview({ 
+const preview = new Preview({
     parent: previewWrapper,
-    store, 
-    data: _data[0] 
-});
+    store,
+    data: _data[0],
+})
 const lineChart = new LineChart({
     parent: lineChartWrapper,
-    store, 
-    data: _data[0] 
-});
+    store,
+    data: _data[0],
+})
 
-lineChartWrapper.appendChild(lineChart.getLayer({ layerID: X_AXIS_LAYER }));
-lineChartWrapper.appendChild(lineChart.getLayer({ layerID: LINES_LAYER }));
-lineChartWrapper.appendChild(lineChart.getLayer({ layerID: LINE_CHART_LAYER }));
-lineChartWrapper.appendChild(lineChart.getLayer({ layerID: HOVERABLE_LAYER }));
-lineChartWrapper.appendChild(lineChart.getLayer({ layerID: TOOLTIP_LAYER }));
+lineChartWrapper.appendChild(lineChart.getLayer({ layerID: X_AXIS_LAYER }))
+lineChartWrapper.appendChild(lineChart.getLayer({ layerID: LINES_LAYER }))
+lineChartWrapper.appendChild(lineChart.getLayer({ layerID: LINE_CHART_LAYER }))
+lineChartWrapper.appendChild(lineChart.getLayer({ layerID: HOVERABLE_LAYER }))
+lineChartWrapper.appendChild(lineChart.getLayer({ layerID: TOOLTIP_LAYER }))
 
-previewWrapper.appendChild(preview.getLayer({ layerID: BASE_LAYER }));
-previewWrapper.appendChild(preview.getLayer({ layerID: WINDOW_LAYER }));
+previewWrapper.appendChild(preview.getLayer({ layerID: BASE_LAYER }))
+previewWrapper.appendChild(preview.getLayer({ layerID: WINDOW_LAYER }))
 
-chartWrapper.appendChild(button.buttonWrapper);
-chartWrapper.appendChild(button2.buttonWrapper);
+chartWrapper.appendChild(button.buttonWrapper)
+chartWrapper.appendChild(button2.buttonWrapper)

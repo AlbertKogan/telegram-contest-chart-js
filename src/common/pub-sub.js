@@ -1,6 +1,6 @@
 export default class PubSub {
     constructor() {
-        this.events = new Map();
+        this.events = new Map()
     }
 
     /**
@@ -8,16 +8,16 @@ export default class PubSub {
      * @param {function} callback
      * @memberof PubSub
      */
-    subscribe({ eventName, callback }) {     
-        const events = this.events;
+    subscribe({ eventName, callback }) {
+        const events = this.events
 
-        if(!events.has(eventName)) {
-            events.set(eventName, []);
+        if (!events.has(eventName)) {
+            events.set(eventName, [])
         }
 
-        console.log(`subscribed on ${eventName}`);
-        
-        events.set(eventName, [...events.get(eventName), callback]);
+        console.log(`subscribed on ${eventName}`)
+
+        events.set(eventName, [...events.get(eventName), callback])
     }
 
     /**
@@ -26,15 +26,15 @@ export default class PubSub {
      * @returns {array}
      * @memberof PubSub
      */
-    publish({ eventName, data = {} }) {        
-        const events = this.events;
+    publish({ eventName, data = {} }) {
+        const events = this.events
 
-        console.log(`published ${eventName}`);
+        console.log(`published ${eventName}`)
 
-        if(!events.has(eventName)) {
-            return [];
+        if (!events.has(eventName)) {
+            return []
         }
-        
-        return events.get(eventName).map(callback => callback(data));
+
+        return events.get(eventName).map(callback => callback(data))
     }
-};
+}
