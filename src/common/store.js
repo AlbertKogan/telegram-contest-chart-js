@@ -15,6 +15,8 @@ export default class Store {
         this.actions = actions
         this.mutations = mutations
         this.state = state
+
+        console.log(state);
     }
 
     /**
@@ -59,7 +61,6 @@ export default class Store {
         )
 
         self.events.publish({ eventName: 'stateChange', data: newState })
-        console.log('newState', newState);
         return newState
     }
 }

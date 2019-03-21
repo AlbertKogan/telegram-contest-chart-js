@@ -6,7 +6,11 @@ import {
     HOVERABLE_LAYER,
     TOOLTIP_LAYER,
 } from './constants'
-import { throttle, convertToXAxisCoords } from '../common/utils'
+import {
+    throttle,
+    convertToXAxisCoords,
+    abbreviateNumber,
+} from '../common/utils'
 
 import commonStyles from './../style.scss'
 
@@ -21,10 +25,18 @@ const LINE_COLOR = 'rgb(242, 244, 245)'
 const NIGHT_LINE_COLOR = 'rgb(41, 53, 67)'
 const HOVER_LINE_COLOR = 'rgb(223, 230, 235)'
 const NIGHT_HOVER_LINE_COLOR = 'rgb(60, 74, 89)'
-const TOOLTIP_BACKGROUND = 'white';
-const NIGHT_TOOLTIP_BACKGROUND = 'rgb(37, 50, 64)';
-const DOT_FILL = 'white';
+const TOOLTIP_BACKGROUND = 'rgb(255, 255, 255)'
+const NIGHT_TOOLTIP_BACKGROUND = 'rgb(37, 50, 64)'
+const TOOLTIP_BORDER_COLOR = 'rgb(227, 227, 227)'
+const NIGHT_TOOLTIP_BORDER_COLOR = 'rgb(32, 42, 54)'
+const TOOLTIP_TEXT_COLOR = 'rgb(34, 34, 34)'
+const NIGHT_TOOLTIP_TEXT_COLOR = 'rgb(255, 255, 255)'
+
+const DOT_FILL = 'rgb(255, 255, 255)'
 const NIGHT_DOT_FILL = 'rgb(36, 47, 61)'
+
+const TOOLTIP_PADDING = 5
+const MIN_TOOLTIP_WIDTH = 100
 
 class LineChart extends Base {
     _rawData = {}
@@ -186,7 +198,7 @@ class LineChart extends Base {
             dateLabel,
             _averageLabelWdth,
             visibleBounds,
-            nightMode
+            nightMode,
         } = this
         const xAxisLayer = this.getLayerContext({ layerID: X_AXIS_LAYER })
 
@@ -237,7 +249,7 @@ class LineChart extends Base {
     }
 
     onMouseMove(event) {
-        const currentMousePosition = { x: event.clientX, y: event.clientY }
+        const currentMousePosition = this.getCursorPosition(event)
         const { xCoords, _hoverThreshold } = this
 
         this._mousePosition = currentMousePosition
@@ -263,7 +275,14 @@ class LineChart extends Base {
     }
 
     drawOnHover() {
-        const { _activeIndex, xCoords, chartHeight, _rawData, points, nightMode } = this
+        const {
+            _activeIndex,
+            xCoords,
+            chartHeight,
+            _rawData,
+            points,
+            nightMode,
+        } = this
         const hoverableLayerContext = this.getLayerContext({
             layerID: HOVERABLE_LAYER,
         })
@@ -274,8 +293,12 @@ class LineChart extends Base {
         if (_activeIndex > -1) {
             let x = xCoords[_activeIndex]
 
-            hoverableLayerContext.fillStyle = nightMode ? NIGHT_DOT_FILL : DOT_FILL
-            hoverableLayerContext.strokeStyle = nightMode ? NIGHT_HOVER_LINE_COLOR : HOVER_LINE_COLOR
+            hoverableLayerContext.fillStyle = nightMode
+                ? NIGHT_DOT_FILL
+                : DOT_FILL
+            hoverableLayerContext.strokeStyle = nightMode
+                ? NIGHT_HOVER_LINE_COLOR
+                : HOVER_LINE_COLOR
             hoverableLayerContext.beginPath()
             hoverableLayerContext.lineWidth = 1
             hoverableLayerContext.moveTo(x, 0)
@@ -298,27 +321,118 @@ class LineChart extends Base {
         this.drawTooltip()
     }
 
+    calculateTooltipWidth() {
+        const tooltipLayerContext = this.getLayerContext({
+            layerID: TOOLTIP_LAYER,
+        })
+
+        const { _activeIndex, _rawData, _activeCharts } = this
+        const columns = _rawData.columns
+
+        let width = 0
+        let count = 0
+
+        for (let column in columns) {
+            if (_activeCharts[column]) {
+                const text = abbreviateNumber(columns[column][_activeIndex])
+                width += tooltipLayerContext.measureText(text).width
+                count++
+            }
+        }
+
+        const finalWidth = Math.round(width) + TOOLTIP_PADDING * (count + 1)
+        return finalWidth < MIN_TOOLTIP_WIDTH ? MIN_TOOLTIP_WIDTH : finalWidth
+    }
+
+    drawRoundRect({ context, x, y, width, height }) {
+        const { nightMode } = this
+
+        const cornerRadius = {
+            upperLeft: 6,
+            upperRight: 6,
+            lowerLeft: 6,
+            lowerRight: 6,
+        }
+
+        context.beginPath()
+        context.lineWidth = 1
+        context.moveTo(x + cornerRadius.upperLeft, y)
+        context.lineTo(x + width - cornerRadius.upperRight, y)
+        context.quadraticCurveTo(
+            x + width,
+            y,
+            x + width,
+            y + cornerRadius.upperRight
+        )
+        context.lineTo(x + width, y + height - cornerRadius.lowerRight)
+        context.quadraticCurveTo(
+            x + width,
+            y + height,
+            x + width - cornerRadius.lowerRight,
+            y + height
+        )
+        context.lineTo(x + cornerRadius.lowerLeft, y + height)
+        context.quadraticCurveTo(
+            x,
+            y + height,
+            x,
+            y + height - cornerRadius.lowerLeft
+        )
+        context.lineTo(x, y + cornerRadius.upperLeft)
+        context.quadraticCurveTo(x, y, x + cornerRadius.upperLeft, y)
+        context.fillStyle = nightMode
+            ? NIGHT_TOOLTIP_BACKGROUND
+            : TOOLTIP_BACKGROUND
+        context.strokeStyle = nightMode
+            ? NIGHT_TOOLTIP_BORDER_COLOR
+            : TOOLTIP_BORDER_COLOR
+        context.fill()
+        context.stroke()
+        context.closePath()
+    }
+
+    drawTooltipText({ context, date, x, y }) {
+        const { _activeIndex, _rawData, nightMode, _activeCharts } = this
+
+        // insert date
+        context.font = 'lighter 15px Helvetica'
+        context.fillStyle = nightMode ? NIGHT_TOOLTIP_TEXT_COLOR : TOOLTIP_TEXT_COLOR
+        context.fillText(date, x + TOOLTIP_PADDING, y + 25)
+        context.save()
+
+        // chart data
+        let offset = TOOLTIP_PADDING
+        for (let column in _rawData.columns) {
+            if (_activeCharts[column]) {
+                context.fillStyle = _rawData.colors[column]
+                const text = abbreviateNumber(
+                    _rawData.columns[column][_activeIndex]
+                )
+                const name = _rawData.names[column]
+    
+                context.fillText(text, x + offset, y + 50)
+                context.fillText(name, x + offset, y + 70)
+                offset = offset + context.measureText(text).width + TOOLTIP_PADDING
+                context.save()
+            }
+        }
+    }
+
     drawTooltip() {
         const tooltipLayerContext = this.getLayerContext({
             layerID: TOOLTIP_LAYER,
         })
-        const { _activeIndex, xCoords, _rawData, dateLabel, width, nightMode } = this
+        const { _activeIndex, xCoords, _rawData, dateLabel, width } = this
 
-        var cornerRadius = {
-            upperLeft: 10,
-            upperRight: 10,
-            lowerLeft: 10,
-            lowerRight: 10,
-        }
         // TODO: add dynamic width, height
-        const tooltipWidth = 200
-        const height = 150
+        const height = 80
         let x = xCoords[_activeIndex] + 20
         let y = 20
 
         this.clearContext({ layerID: TOOLTIP_LAYER })
 
         if (_activeIndex > -1) {
+            const tooltipWidth = this.calculateTooltipWidth()
             const date = dateLabel({
                 UNIXDate: _rawData.x[_activeIndex],
                 additionalOtions: { weekday: 'short' },
@@ -329,72 +443,20 @@ class LineChart extends Base {
                 x -= tooltipWidth + 40
             }
 
-            tooltipLayerContext.beginPath()
-            // tooltipLayerContext.shadowBlur = 6;
-            // tooltipLayerContext.shadowOffsetY = 2;
-            // tooltipLayerContext.shadowColor = "#969696";
-            tooltipLayerContext.moveTo(x + cornerRadius.upperLeft, y)
-            tooltipLayerContext.lineTo(
-                x + tooltipWidth - cornerRadius.upperRight,
-                y
-            )
-            tooltipLayerContext.quadraticCurveTo(
-                x + tooltipWidth,
-                y,
-                x + tooltipWidth,
-                y + cornerRadius.upperRight
-            )
-            tooltipLayerContext.lineTo(
-                x + tooltipWidth,
-                y + height - cornerRadius.lowerRight
-            )
-            tooltipLayerContext.quadraticCurveTo(
-                x + tooltipWidth,
-                y + height,
-                x + tooltipWidth - cornerRadius.lowerRight,
-                y + height
-            )
-            tooltipLayerContext.lineTo(x + cornerRadius.lowerLeft, y + height)
-            tooltipLayerContext.quadraticCurveTo(
-                x,
-                y + height,
-                x,
-                y + height - cornerRadius.lowerLeft
-            )
-            tooltipLayerContext.lineTo(x, y + cornerRadius.upperLeft)
-            tooltipLayerContext.quadraticCurveTo(
+            this.drawRoundRect({
+                context: tooltipLayerContext,
                 x,
                 y,
-                x + cornerRadius.upperLeft,
-                y
-            )
-            tooltipLayerContext.fillStyle = nightMode ? NIGHT_TOOLTIP_BACKGROUND : TOOLTIP_BACKGROUND
-            tooltipLayerContext.strokeStyle = '#969696'
-            tooltipLayerContext.fill()
-            tooltipLayerContext.stroke()
-            tooltipLayerContext.closePath()
+                width: tooltipWidth,
+                height,
+            })
 
-            // TODO: move it to separate handler
-            tooltipLayerContext.font = 'lighter 15px Helvetica'
-            tooltipLayerContext.fillStyle = nightMode ? NIGHT_FONT_COLOR : FONT_COLOR
-            tooltipLayerContext.fillText(date, x + 25, y + 25)
-            tooltipLayerContext.save()
-
-            tooltipLayerContext.fillStyle = _rawData.colors['y0']
-            tooltipLayerContext.fillText(
-                _rawData.columns['y0'][_activeIndex],
-                x + 25,
-                y + 55
-            )
-            tooltipLayerContext.save()
-
-            tooltipLayerContext.fillStyle = _rawData.colors['y1']
-            tooltipLayerContext.fillText(
-                _rawData.columns['y1'][_activeIndex],
-                x + 60,
-                y + 55
-            )
-            tooltipLayerContext.save()
+            this.drawTooltipText({
+                context: tooltipLayerContext,
+                date,
+                x,
+                y,
+            })
         }
     }
 }

@@ -56,6 +56,10 @@
             color: rgb(232, 236, 238) !important;
         }
     }
+
+    .chartTitle {
+        color: rgb(232, 236, 238);
+    }
 }
 
 :global {
@@ -64,6 +68,8 @@
         height: 100%;
         flex-direction: column;
         justify-content: flex-start;
+        max-width: 400px;
+        margin: 0 auto;
     }
 
     body {
@@ -73,7 +79,6 @@
     @media screen and (min-width: 1025px) {
         .container {
             max-width: 800px;
-            margin: 0 auto;
         }
     }
 }

@@ -23,7 +23,9 @@ export default class App {
     constructor({ data }) {
         const self = this
 
-        self.data = processData(data)
+        let _data = [data[4]]
+
+        self.data = processData(_data)
         self.stores = self.initializeMultipleStores({
             data: self.data,
             rawData: data,
