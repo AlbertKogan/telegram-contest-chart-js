@@ -95,4 +95,22 @@ export const processData = data =>
             columns,
         }
     })
-    
+
+export const abbreviateNumber = (value) => {
+    // check if number
+    if (isNaN(value)) {
+        return value;
+    }
+
+    const suffixes = ['', 'K', 'M', 'B', 'T']
+
+    let newValue = value
+    let suffixNum = 0
+
+    while (newValue >= 1000) {
+        newValue /= 1000
+        suffixNum++
+    }
+
+    return `${newValue.toPrecision(3)} ${suffixes[suffixNum]}` 
+}

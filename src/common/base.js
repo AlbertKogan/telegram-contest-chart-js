@@ -201,14 +201,16 @@ class Base {
 
     getCursorPosition(event) {
         let currentCursorPosition = this.mousePosition
+        const { parentSize } = this;
 
         if (this.touchDevice && event.touches.length) {
             currentCursorPosition = {
-                x: event.touches[0].clientX,
+                // x position relative to parent
+                x: event.touches[0].clientX - parentSize.x,
                 y: event.touches[0].clientY,
             }
         } else {
-            currentCursorPosition = { x: event.clientX, y: event.clientY }
+            currentCursorPosition = { x: event.clientX - parentSize.x, y: event.clientY }
         }
 
         return currentCursorPosition
