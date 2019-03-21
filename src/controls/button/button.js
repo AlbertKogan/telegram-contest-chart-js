@@ -38,15 +38,15 @@ class Button {
         circle.setAttribute('cx', 26)
         circle.setAttribute('cy', 26)
         circle.setAttribute('r', 24)
-        circle.setAttribute('stroke', store.state.orm.data[0].colors[id])
-        circle.setAttribute('fill', store.state.orm.data[0].colors[id])
+        circle.setAttribute('stroke', store.state.orm.data.colors[id])
+        circle.setAttribute('fill', store.state.orm.data.colors[id])
         icon.setAttribute('d', 'M14.1 27.2l7.1 7.2 16.7-16.8')
 
         label.appendChild(circle)
         label.appendChild(icon)
         text.classList.add(styles.buttonText)
         // TODO: fixs
-        text.innerText = store.state.orm.data[0].names[id]
+        text.innerText = store.state.orm.data.names[id]
 
         self.buttonWrapper.appendChild(label)
         self.buttonWrapper.appendChild(text)

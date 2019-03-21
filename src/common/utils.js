@@ -78,3 +78,21 @@ export const converDataSetToPoints = ({
 
     return result
 }
+
+export const processData = data =>
+    data.map(item => {
+        const { x, ...columns } = item.columns.reduce(
+            (acc, current) => ({
+                ...acc,
+                [current[0]]: current.slice(1),
+            }),
+            {}
+        )
+
+        return {
+            ...item,
+            x,
+            columns,
+        }
+    })
+    
