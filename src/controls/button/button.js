@@ -1,4 +1,6 @@
 import styles from './style.scss'
+import commonStyles from './../../style.scss'
+
 import { TOGGLE_ACTIVE_CHART } from '../../common/actions'
 
 class Button {
@@ -11,6 +13,7 @@ class Button {
         self._id = id
         self.buttonWrapper = document.createElement('div')
         self.buttonWrapper.classList.add(styles.buttonWrapper)
+        self.buttonWrapper.classList.add(commonStyles.buttonWrapper)
         self.buttonWrapper.classList.add(styles.active)
 
         const text = document.createElement('div')

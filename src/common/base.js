@@ -135,6 +135,7 @@ class Base {
                     // chartContext.lineTo(p2.x, p2.y * transition);
                 }
             }
+            chartContext.lineWidth = 2
             chartContext.stroke()
             chartContext.closePath()
         }

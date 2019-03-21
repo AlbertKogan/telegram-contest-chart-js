@@ -5,7 +5,7 @@
 
 .chartWrapper {
     position: relative;
-    height: 500px;
+    height: 300px;
 }
 
 .layer {
@@ -20,6 +20,35 @@
 
     & > div {
         margin: 0 10px 0 0;
+    }
+}
+
+.nightMode {
+    background: rgb(36, 47, 61);
+
+    .modeLink {
+        color: rgb(62, 169, 238);
+    }
+
+    .buttonWrapper {
+        border-color: rgb(53, 70, 87);
+
+        & > div {
+            color: rgb(232, 236, 238) !important;
+        }
+    }
+}
+
+:global {
+    .container {
+        display: flex;
+        height: 100%;
+        flex-direction: column;
+        justify-content: flex-start;
+    }
+
+    body {
+        height: 100vh;
     }
 }
 

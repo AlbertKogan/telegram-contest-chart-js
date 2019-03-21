@@ -1,0 +1,14 @@
+.modeLink {
+    padding: 5px;
+    cursor: pointer;
+    color: rgb(31, 141, 224);
+
+    &Wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 1 auto;
+        flex-direction: column;
+    }
+}

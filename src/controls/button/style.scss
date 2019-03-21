@@ -3,6 +3,10 @@
         &LabelCircle {
             fill-opacity: 1;
         }
+
+        &LabelIcon {
+            stroke-opacity: 1;
+        }
     }
 }
 
@@ -17,10 +21,6 @@
         justify-content: center;
         align-items: center;
         user-select: none;
-
-        &:hover {
-            border-color: rgb(202, 207, 211);
-        }
     }
 
     &Text {
@@ -49,6 +49,8 @@
         &Icon {
             transform-origin: 50% 50%;
             stroke: white;
+            stroke-opacity: 0;
+            transition: stroke-opacity .2s ease-in-out;
         }
     }
 }

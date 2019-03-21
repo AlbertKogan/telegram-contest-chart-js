@@ -4,6 +4,7 @@ import styles from './style.scss'
 import Preview from './preview/preview'
 import LineChart from './line-chart/line-chart'
 import Button from './controls/button/button'
+import ModeLink from './controls/mode-link/link'
 
 import { WINDOW_LAYER, BASE_LAYER } from './preview/constants'
 
@@ -37,7 +38,7 @@ const processData = data =>
 
 const INITIAL_STATE = {
     ui: {
-        mode: 'light',
+        nightMode: false,
         visibleBounds: {},
         // TODO: needs better way to provide active
         activeCharts: {
@@ -63,8 +64,10 @@ const chartWrapper = document.getElementById('chartWrapper')
 const previewWrapper = document.createElement('div')
 const lineChartWrapper = document.createElement('div')
 const buttonsWrapper = document.createElement('div')
+
 const button = new Button({ store, id: 'y0' })
 const button2 = new Button({ store, id: 'y1' })
+const modeLink = new ModeLink({ store, wrapper: chartWrapper })
 
 const _data = processData(data)
 
@@ -97,3 +100,4 @@ previewWrapper.appendChild(preview.getLayer({ layerID: WINDOW_LAYER }))
 buttonsWrapper.appendChild(button.buttonWrapper)
 buttonsWrapper.appendChild(button2.buttonWrapper)
 chartWrapper.appendChild(buttonsWrapper)
+chartWrapper.appendChild(modeLink.modeLinkWrapper)
