@@ -62,6 +62,7 @@ window.chartStore = store
 const chartWrapper = document.getElementById('chartWrapper')
 const previewWrapper = document.createElement('div')
 const lineChartWrapper = document.createElement('div')
+const buttonsWrapper = document.createElement('div')
 const button = new Button({ store, id: 'y0' })
 const button2 = new Button({ store, id: 'y1' })
 
@@ -69,6 +70,7 @@ const _data = processData(data)
 
 previewWrapper.classList.add(styles.previewWrapper)
 lineChartWrapper.classList.add(styles.chartWrapper)
+buttonsWrapper.classList.add(styles.buttonsWrapper)
 chartWrapper.appendChild(lineChartWrapper)
 chartWrapper.appendChild(previewWrapper)
 
@@ -92,5 +94,6 @@ lineChartWrapper.appendChild(lineChart.getLayer({ layerID: TOOLTIP_LAYER }))
 previewWrapper.appendChild(preview.getLayer({ layerID: BASE_LAYER }))
 previewWrapper.appendChild(preview.getLayer({ layerID: WINDOW_LAYER }))
 
-chartWrapper.appendChild(button.buttonWrapper)
-chartWrapper.appendChild(button2.buttonWrapper)
+buttonsWrapper.appendChild(button.buttonWrapper)
+buttonsWrapper.appendChild(button2.buttonWrapper)
+chartWrapper.appendChild(buttonsWrapper)
