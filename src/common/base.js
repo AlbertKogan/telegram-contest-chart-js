@@ -2,9 +2,8 @@ import {
     maxInDataSet,
     converDataSetToPoints,
     convertToXAxisCoords,
+    outQuart,
 } from '../common/utils'
-
-const outQuart = n => 1 - --n * n * n * n
 
 class Base {
     layers = {}
@@ -102,6 +101,7 @@ class Base {
             for (let i = 0; i < points[line].length - 1; i++) {
                 let current = i
                 let next = i + 1
+
                 let p1 = points[line][current]
                 let p2 = points[line][next]
 
@@ -116,11 +116,9 @@ class Base {
                         chartHeight -
                             (chartHeight * transition - p2.y * transition)
                     )
-                } else {
+                } else if (prevPoints[line][current] && prevPoints[line][next]) {
                     let prevPoint1 = prevPoints[line][current]
                     let prevPoint2 = prevPoints[line][next]
-
-                    //console.log('==>', prevPoint1.y === p1.y);
 
                     chartContext.moveTo(
                         p1.x,
@@ -130,11 +128,18 @@ class Base {
                         p2.x,
                         prevPoint2.y + (p2.y - prevPoint2.y) * transition
                     )
-
-                    // chartContext.moveTo(p1.x, p1.y * transition);
-                    // chartContext.lineTo(p2.x, p2.y * transition);
+                } else {
+                    chartContext.moveTo(
+                        p1.x,
+                        p1.y
+                    )
+                    chartContext.lineTo(
+                        p2.x,
+                        p2.y
+                    )
                 }
             }
+
             chartContext.lineWidth = 2
             chartContext.stroke()
             chartContext.closePath()

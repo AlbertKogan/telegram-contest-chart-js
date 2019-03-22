@@ -74,7 +74,7 @@ class Preview extends Base {
             x: WINDOW_PADDING,
             y: 0,
             width: 200,
-            height: 100,
+            height: self.height,
         }
 
         // Draw rectangle
@@ -90,7 +90,7 @@ class Preview extends Base {
             self.withHandler({
                 layerID: WINDOW_LAYER,
                 handlerType: 'touchmove',
-                handler: self.throttledMosueMove.bind(self),
+                handler: self.onMouseMove.bind(self),
             })
             self.withHandler({
                 layerID: WINDOW_LAYER,
@@ -111,7 +111,7 @@ class Preview extends Base {
             self.withHandler({
                 layerID: WINDOW_LAYER,
                 handlerType: 'mousemove',
-                handler: self.throttledMosueMove.bind(self),
+                handler: self.onMouseMove.bind(self),
             })
             self.withHandler({
                 layerID: WINDOW_LAYER,
@@ -189,6 +189,7 @@ class Preview extends Base {
 
     onMouseMove(event) {
         event.preventDefault()
+
         const currentMousePosition = this.getCursorPosition(event)
         const { drawWindow, mouseDown, mousePosition } = this
         const windowLayer = this.getLayer({ layerID: WINDOW_LAYER })
@@ -245,9 +246,10 @@ class Preview extends Base {
     }
 
     get mouseDelta() {
-        const { prevMosuePosition, mousePosition } = this
+        const { prevMosuePosition, mousePosition, dpr } = this
 
-        return mousePosition.x - prevMosuePosition.x
+        // 1.3 to boost up delta for retina devices, otherwise window moving too slow
+        return ((mousePosition.x - prevMosuePosition.x) / dpr) * 1.3
     }
 
     get throttledMosueMove() {
@@ -261,28 +263,23 @@ class Preview extends Base {
 
         this.mouseDown = true
         this.mousePosition = mousePosition
-        this.prevMosuePosition = mousePosition
-        this.preventAnimation = true
     }
 
     onTouchStart(event) {
         event.preventDefault()
 
         this.mouseIn = true
+        this.setHoverType({ event })
         this.onMouseDown(event)
-        this.preventAnimation = true
     }
 
     onTouchEnd(event) {
-        this.mouseDown = false
         this.mouseIn = false
-        this.onMouseDown(event)
-        this.preventAnimation = false
+        this.onMouseUp(event)
     }
 
     onMouseUp() {
         this.mouseDown = false
-        this.preventAnimation = false
     }
 
     onMouseEnter() {
