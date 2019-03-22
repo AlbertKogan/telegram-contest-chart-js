@@ -48,13 +48,14 @@ class LineChart extends Base {
     _opacity = 0
     isMooving = false
 
-    constructor({ parent, data, store }) {
+    constructor({ parent, data, store, chartID }) {
         super()
         const self = this
 
         self.parent = parent
         self._rawData = data
         self.store = store
+        self.chartID = chartID
 
         self.setParentSize()
         // Do it better
@@ -66,29 +67,15 @@ class LineChart extends Base {
         const hoverableLayer = self.createLayer({ layerID: HOVERABLE_LAYER })
         const tooltipLayer = self.createLayer({ layerID: TOOLTIP_LAYER })
 
-        chartLayer.width = self.width
-        chartLayer.height = self.height
         chartLayer.classList.add(commonStyles.layer)
-
-        xAxisLayer.width = self.width
-        xAxisLayer.height = self.height
         xAxisLayer.classList.add(commonStyles.layer)
-
-        backLayer.width = self.width
-        backLayer.height = self.height
         backLayer.classList.add(commonStyles.layer)
-
-        hoverableLayer.width = self.width
-        hoverableLayer.height = self.height
         hoverableLayer.classList.add(commonStyles.layer)
-
-        tooltipLayer.width = self.width
-        tooltipLayer.height = self.height
         tooltipLayer.classList.add(commonStyles.layer)
 
         // Default state
-        self._visibleBounds = store.state.ui.visibleBounds
-        self._activeCharts = store.state.ui.activeCharts
+        self._visibleBounds = store.state.charts[self.chartID].ui.visibleBounds
+        self._activeCharts = store.state.charts[self.chartID].ui.activeCharts
 
         self._xCoordsAll = convertToXAxisCoords({
             layerWidth: self.width,
@@ -142,10 +129,11 @@ class LineChart extends Base {
     storeCallback () {
         this.iteration = 0
 
-        this._visibleBounds = this.store.state.ui.visibleBounds
-        this._activeCharts = this.store.state.ui.activeCharts
-        this.nightMode = this.store.state.ui.nightMode
-        this.isMooving = this.store.state.ui.isMooving
+        this._visibleBounds = this.store.state.charts[this.chartID].ui.visibleBounds
+        this._activeCharts = this.store.state.charts[this.chartID].ui.activeCharts
+        this.isMooving = this.store.state.charts[this.chartID].ui.isMooving
+        this.nightMode = this.store.state.nightMode
+
 
         this.recalculate({ showFullRange: false })
         window.requestAnimationFrame(this.drawScene.bind(this))

@@ -23,53 +23,79 @@ export default class App {
     constructor({ data }) {
         const self = this
 
-        let _data = [data[4]]
-
-        self.data = processData(_data)
-        self.stores = self.initializeMultipleStores({
+        self.data = processData(data)
+        self.store = self.initializeStore({
             data: self.data,
             rawData: data,
         })
         self.appContainter = document.getElementById('app')
+        self.wrapperContainer = document.getElementById('wrapper')
 
-        self.data.map((chartData, index) =>
-            self.initializeChart({
-                chartData,
-                store: self.stores[index],
-                index,
-            })
+        // Don't want to shock browser
+        self.data.map(self.throttledInit.bind(self))
+
+        const modeLink = new ModeLink({
+            store: self.store,
+            wrapper: self.wrapperContainer,
+        })
+
+        // append after all graphs init
+        setTimeout(
+            () => self.appContainter.appendChild(modeLink.modeLinkWrapper),
+            self.data.length * 800
         )
     }
 
-    initializeMultipleStores({ data, rawData }) {
-        return data.map((dataItem, index) => {
+    throttledInit(chartData, index) {
+        const self = this
+
+        return setTimeout(
+            this.initializeChart.bind(this, {
+                chartData,
+                store: self.store,
+                index,
+                chartID: `CHART_ID_${index}`,
+            }),
+            index * 800
+        )
+    }
+
+    initializeStore({ data, rawData }) {
+        const charts = data.reduce((acc, dataItem, index) => {
             const activeCharts = Object.keys(dataItem.columns).reduce(
-                (acc, cur) => ({
+                (acc, activeChart) => ({
                     ...acc,
-                    [cur]: true,
+                    [activeChart]: true,
                 }),
                 {}
             )
 
-            return new Store({
-                actions,
-                mutations,
-                state: {
+            return {
+                ...acc,
+                [`CHART_ID_${index}`]: {
                     ui: {
-                        nightMode: false,
                         visibleBounds: {},
-                        activeCharts: activeCharts,
+                        activeCharts,
                     },
                     orm: {
                         _rawData: rawData[index],
                         data: data[index],
                     },
                 },
-            })
+            }
+        }, {})
+
+        return new Store({
+            actions,
+            mutations,
+            state: {
+                nightMode: false,
+                charts,
+            },
         })
     }
 
-    initializeChart({ chartData, store, index }) {
+    initializeChart({ chartData, store, index, chartID }) {
         const { appContainter } = this
 
         const chartWrapper = document.createElement('div')
@@ -95,11 +121,13 @@ export default class App {
             parent: previewWrapper,
             store,
             data: chartData,
+            chartID,
         })
         const lineChart = new LineChart({
             parent: lineChartWrapper,
             store,
             data: chartData,
+            chartID,
         })
 
         // Append chart
@@ -125,16 +153,12 @@ export default class App {
 
         // Append buttons
         Object.keys(chartData.names).map(id => {
-            const button = new Button({ store, id })
+            const button = new Button({ store, id, chartID })
             buttonsWrapper.appendChild(button.buttonWrapper)
 
             return button
         })
 
         chartWrapper.appendChild(buttonsWrapper)
-
-        // Append Link (maybe not for each chart)
-        const modeLink = new ModeLink({ store, wrapper: chartWrapper })
-        chartWrapper.appendChild(modeLink.modeLinkWrapper)
     }
 }

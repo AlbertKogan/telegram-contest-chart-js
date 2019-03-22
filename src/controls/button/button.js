@@ -8,11 +8,12 @@ class Button {
     _active = true
     _id
 
-    constructor({ store, id }) {
+    constructor({ store, id, chartID }) {
         const self = this
 
         self._id = id
         self.store = store
+        self.chartID = chartID
         self.buttonWrapper = document.createElement('div')
         self.buttonWrapper.classList.add(styles.buttonWrapper)
         self.buttonWrapper.classList.add(commonStyles.buttonWrapper)
@@ -40,14 +41,14 @@ class Button {
         circle.setAttribute('cx', 26)
         circle.setAttribute('cy', 26)
         circle.setAttribute('r', 24)
-        circle.setAttribute('stroke', store.state.orm.data.colors[id])
-        circle.setAttribute('fill', store.state.orm.data.colors[id])
+        circle.setAttribute('stroke', self.store.state.charts[self.chartID].orm.data.colors[id])
+        circle.setAttribute('fill', self.store.state.charts[self.chartID].orm.data.colors[id])
         icon.setAttribute('d', 'M14.1 27.2l7.1 7.2 16.7-16.8')
 
         label.appendChild(circle)
         label.appendChild(icon)
         text.classList.add(styles.buttonText)
-        text.innerText = store.state.orm.data.names[id]
+        text.innerText = self.store.state.charts[self.chartID].orm.data.names[id]
 
         self.buttonWrapper.appendChild(label)
         self.buttonWrapper.appendChild(text)
@@ -64,6 +65,7 @@ class Button {
         this.store.dispatch({
             actionKey: TOGGLE_ACTIVE_CHART,
             payload: {
+                chartID: this.chartID,
                 id: this._id,
                 state: this._active,
             },

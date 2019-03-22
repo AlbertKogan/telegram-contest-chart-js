@@ -11,6 +11,7 @@ class ModeLink {
 
         self.modeLinkWrapper = document.createElement('div')
         self.modeLinkWrapper.classList.add(styles.modeLinkWrapper)
+        self.modeLinkWrapper.classList.add(commonStyles.modeLinkWrapper)
         label.classList.add(styles.modeLink)
         label.classList.add(commonStyles.modeLink)
         label.innerHTML = self.modeText

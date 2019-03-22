@@ -11,7 +11,7 @@ class Base {
     touchDevice = false
     parent = null
     parentSize = {}
-    dpr = window.devicePixelRatio || 1
+    dpr = (window.devicePixelRatio || 1) > 2 ? 2 : window.devicePixelRatio
     prevState = {}
     tickCount = 30
     iteration = 0
@@ -21,19 +21,23 @@ class Base {
     }
 
     createLayer({ layerID }) {
-        const layer = document.createElement('canvas')
+        let layer = document.createElement('canvas')
 
+        layer.width = this.parentSize.width * this.dpr
+        layer.height = this.parentSize.height * this.dpr
+        layer.style.width = `${this.parentSize.width}px`;
+        layer.style.height = `${this.parentSize.height}px`;
+
+        const context = layer.getContext('2d')
+
+        context.scale(this.dpr, this.dpr)
+        context.imageSmoothingEnabled = false;
+        
         this.layers = {
             ...this.layers,
             [layerID]: layer,
         }
 
-        layer.width = this.parentSize.width * this.dpr
-        layer.height = this.parentSize.height * this.dpr
-
-        const context = layer.getContext('2d')
-
-        context.scale(this.dpr, this.dpr)
         this.contexts = {
             ...this.contexts,
             [layerID]: context,

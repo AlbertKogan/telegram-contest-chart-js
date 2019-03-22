@@ -7,15 +7,16 @@ import {
 
 export default {
     [SET_VISIBLE_BOUNDS](state, payload) {
-        state.ui.visibleBounds = payload
+        const { chartID, visibleBounds } = payload;
+        state.charts[chartID].ui.visibleBounds = visibleBounds
 
         return state
     },
 
     [TOGGLE_ACTIVE_CHART](_state, payload) {
-        const { id, state } = payload
+        const { id, state, chartID } = payload
 
-        _state.ui.activeCharts[id] = state
+        _state.charts[chartID].ui.activeCharts[id] = state
 
         return _state
     },
@@ -23,15 +24,15 @@ export default {
     [TOGGLE_NIGHT_MODE](state, payload) {
         const { nightMode } = payload
 
-        state.ui.nightMode = nightMode
+        state.nightMode = nightMode
 
         return state
     },
 
     [TOGGLE_MOOVING_STATE](state, payload) {
-        const { isMooving } = payload
+        const { isMooving, chartID } = payload
 
-        state.ui.isMooving = isMooving
+        state.charts[chartID].ui.isMooving = isMooving
 
         return state
     },

@@ -33,7 +33,7 @@ class Preview extends Base {
     isMooving = false
     _delta = 0
 
-    constructor({ parent, data, store }) {
+    constructor({ parent, data, store, chartID }) {
         super()
         const self = this
 
@@ -42,24 +42,19 @@ class Preview extends Base {
         self.store = store
         self.setParentSize()
         self.chartHeight = self.parentSize.height
-
+        self.chartID = chartID
         self.borderThreshold = self.borderThreshold * self.dpr
 
         // Default state
-        self._visibleBounds = store.state.ui.visibleBounds
-        self._activeCharts = store.state.ui.activeCharts
-        self.nightMode = store.state.ui.nightMode
+        self._visibleBounds = self.store.state.charts[self.chartID].ui.visibleBounds
+        self._activeCharts = self.store.state.charts[self.chartID].ui.activeCharts
+        self.nightMode = self.store.state.nightMode
 
         // Create layers: base, window, top layer
         const windowLayer = self.createLayer({ layerID: WINDOW_LAYER })
         const baseLayer = self.createLayer({ layerID: BASE_LAYER })
 
-        windowLayer.width = self.width
-        windowLayer.height = self.height
         windowLayer.classList.add(styles.preview, styles.previewWindow)
-
-        baseLayer.width = self.width
-        baseLayer.height = self.height
         baseLayer.classList.add(styles.preview, styles.previewBase)
 
         self.recalculate({ showFullRange: true })
@@ -138,26 +133,26 @@ class Preview extends Base {
 
         store.events.subscribe({
             eventName: 'stateChange',
-            callback: self.throttledCallback.bind(self)
+            callback: self.throttledCallback.bind(self),
         })
     }
 
-    get throttledCallback () {
+    get throttledCallback() {
         return throttle(100, this.storeCallback.bind(this))
     }
 
     storeCallback() {
         this.iteration = 0
 
-        this._visibleBounds = this.store.state.ui.visibleBounds
-        this._activeCharts = this.store.state.ui.activeCharts
-        this.nightMode = this.store.state.ui.nightMode
+        this._visibleBounds = this.store.state.charts[this.chartID].ui.visibleBounds
+        this._activeCharts = this.store.state.charts[this.chartID].ui.activeCharts
+        this.nightMode = this.store.state.nightMode
 
         this.recalculate({ showFullRange: true })
         window.requestAnimationFrame(this.drawScene.bind(this))
     }
 
-    drawScene () {
+    drawScene() {
         this.drawWindow()
         this.drawChart({
             layerID: BASE_LAYER,
@@ -377,28 +372,33 @@ class Preview extends Base {
     }
 
     sliceVisiblePart() {
-        const { windowPosition, xCoords, store } = this
+        const { windowPosition, xCoords, store, chartID } = this
 
         store.dispatch({
             actionKey: SET_VISIBLE_BOUNDS,
             payload: {
-                fromIndex: xCoords.findIndex(item => item >= windowPosition.x),
-                toIndex: xCoords.findIndex(
-                    item => item >= windowPosition.x + windowPosition.width
-                ),
-                windowWidth: windowPosition.width,
+                chartID,
+                visibleBounds: {
+                    fromIndex: xCoords.findIndex(
+                        item => item >= windowPosition.x
+                    ),
+                    toIndex: xCoords.findIndex(
+                        item => item >= windowPosition.x + windowPosition.width
+                    ),
+                    windowWidth: windowPosition.width,
+                },
             },
         })
     }
 
     toggleMoovingState({ isMooving }) {
-        const { store } = this
+        const { store, chartID } = this
 
         if (isMooving !== this.isMooving) {
             this.isMooving = isMooving
             store.dispatch({
                 actionKey: TOGGLE_MOOVING_STATE,
-                payload: { isMooving },
+                payload: { chartID, isMooving },
             })
         }
     }
