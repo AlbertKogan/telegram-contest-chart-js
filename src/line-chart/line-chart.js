@@ -15,7 +15,8 @@ import {
 import commonStyles from './../style.scss'
 
 const TICK_HEIGHT = 15
-const TICK_FONT_SIZE = 15
+const TICK_FONT_SIZE = 11
+const Y_FONT_SIZE = 9
 
 const FONT_COLOR = 'rgb(150, 162, 170)'
 const NIGHT_FONT_COLOR = 'rgb(85 ,103, 119)'
@@ -41,11 +42,11 @@ const MIN_TOOLTIP_WIDTH = 100
 class LineChart extends Base {
     _rawData = {}
     _visibleBounds = { fromIndex: 0, toIndex: 0 }
-    _animationID
     _activeIndex = -1
     _mousePosition = {}
     _hoverThreshold = 10
     _opacity = 0
+    isMooving = false
 
     constructor({ parent, data, store }) {
         super()
@@ -98,29 +99,56 @@ class LineChart extends Base {
         self.recalculate({ showFullRange: false })
         self.drawScene()
 
-        self.withHandler({
-            layerID: TOOLTIP_LAYER,
-            handlerType: 'mousemove',
-            handler: self.throttledMosueMove.bind(self),
-        })
-        self.withHandler({
-            layerID: TOOLTIP_LAYER,
-            handlerType: 'mouseout',
-            handler: self.hideTooltip.bind(self),
-        })
+        if (self.touchDevice) {
+            self.withHandler({
+                layerID: TOOLTIP_LAYER,
+                handlerType: 'touchstart',
+                handler: self.onMouseMove.bind(self),
+            })
+
+            self.withHandler({
+                layerID: TOOLTIP_LAYER,
+                handlerType: 'touchmove',
+                handler: self.throttledMosueMove.bind(self),
+            })
+
+            self.withHandler({
+                layerID: TOOLTIP_LAYER,
+                handlerType: 'touchend',
+                handler: self.hideTooltip.bind(self),
+            })
+        } else {
+            self.withHandler({
+                layerID: TOOLTIP_LAYER,
+                handlerType: 'mousemove',
+                handler: self.throttledMosueMove.bind(self),
+            })
+            self.withHandler({
+                layerID: TOOLTIP_LAYER,
+                handlerType: 'mouseout',
+                handler: self.hideTooltip.bind(self),
+            })
+        }
         store.events.subscribe({
             eventName: 'stateChange',
-            callback: () => {
-                self.iteration = 0
-
-                self._visibleBounds = store.state.ui.visibleBounds
-                self._activeCharts = store.state.ui.activeCharts
-                self.nightMode = store.state.ui.nightMode
-
-                self.recalculate({ showFullRange: false })
-                window.requestAnimationFrame(self.drawScene.bind(self))
-            },
+            callback: self.throttledCallback.bind(self)
         })
+    }
+
+    get throttledCallback () {
+        return throttle(100, this.storeCallback.bind(this))
+    }
+
+    storeCallback () {
+        this.iteration = 0
+
+        this._visibleBounds = this.store.state.ui.visibleBounds
+        this._activeCharts = this.store.state.ui.activeCharts
+        this.nightMode = this.store.state.ui.nightMode
+        this.isMooving = this.store.state.ui.isMooving
+
+        this.recalculate({ showFullRange: false })
+        window.requestAnimationFrame(this.drawScene.bind(this))
     }
 
     hideTooltip() {
@@ -225,20 +253,37 @@ class LineChart extends Base {
     }
 
     drawLines() {
-        const { height, width, nightMode } = this
+        const LINES = 7
+        const FONT_PADDING = 7
+        const { width, nightMode, maxInColumns, chartHeight } = this
         const linesLayer = this.getLayerContext({ layerID: LINES_LAYER })
-
-        let h = height - 50
+        const boundedHeight = chartHeight - TICK_FONT_SIZE
+        const lineStep = boundedHeight / LINES
+        const dataStep = maxInColumns / LINES
 
         this.clearContext({ layerID: LINES_LAYER })
 
         linesLayer.strokeStyle = nightMode ? NIGHT_LINE_COLOR : LINE_COLOR
+        linesLayer.fillStyle = nightMode ? NIGHT_FONT_COLOR : FONT_COLOR
+        linesLayer.font = `lighter ${Y_FONT_SIZE}px Helvetica`
 
         linesLayer.beginPath()
+
+        let dataOffset = maxInColumns
+        let h = boundedHeight
+        let current = 0
+
         while (h >= 0) {
-            h -= 100
             linesLayer.moveTo(0, h)
             linesLayer.lineTo(width, h)
+            linesLayer.fillText(
+                current ? abbreviateNumber(current) : 0,
+                0,
+                h - FONT_PADDING
+            )
+            h -= lineStep
+            dataOffset -= dataStep
+            current = maxInColumns - dataOffset
         }
         linesLayer.stroke()
         linesLayer.closePath()
@@ -249,6 +294,8 @@ class LineChart extends Base {
     }
 
     onMouseMove(event) {
+        event.preventDefault()
+
         const currentMousePosition = this.getCursorPosition(event)
         const { xCoords, _hoverThreshold } = this
 
@@ -263,15 +310,7 @@ class LineChart extends Base {
             return false
         })
 
-        // if (this._animationID) {
-        //     window.cancelAnimationFrame(this.animationID);
-        // } else {
-        //     this._animationID = window.requestAnimationFrame(this.drawOnHover.bind(this));
-        // }
-
-        this._animationID = window.requestAnimationFrame(
-            this.drawOnHover.bind(this)
-        )
+        window.requestAnimationFrame(this.drawOnHover.bind(this))
     }
 
     drawOnHover() {
@@ -396,7 +435,9 @@ class LineChart extends Base {
 
         // insert date
         context.font = 'lighter 15px Helvetica'
-        context.fillStyle = nightMode ? NIGHT_TOOLTIP_TEXT_COLOR : TOOLTIP_TEXT_COLOR
+        context.fillStyle = nightMode
+            ? NIGHT_TOOLTIP_TEXT_COLOR
+            : TOOLTIP_TEXT_COLOR
         context.fillText(date, x + TOOLTIP_PADDING, y + 25)
         context.save()
 
@@ -409,10 +450,11 @@ class LineChart extends Base {
                     _rawData.columns[column][_activeIndex]
                 )
                 const name = _rawData.names[column]
-    
+
                 context.fillText(text, x + offset, y + 50)
                 context.fillText(name, x + offset, y + 70)
-                offset = offset + context.measureText(text).width + TOOLTIP_PADDING
+                offset =
+                    offset + context.measureText(text).width + TOOLTIP_PADDING
                 context.save()
             }
         }

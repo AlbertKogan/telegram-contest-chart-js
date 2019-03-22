@@ -28,20 +28,23 @@ export const convertToXAxisCoords = ({ layerWidth, data }) => {
     const minValue = data[0]
     const base = layerWidth / (maxValue - minValue)
 
-    return data.reduce(
+    const result = data.reduce(
         (acc, current, index) => {
             let result
 
             if (!data[index + 1]) {
-                result = base
+                result = acc[index] + base * (current - data[index -1])
+            } else {
+                result = acc[index] + base * (data[index + 1] - current)
             }
 
-            result = acc[index] + base * (data[index + 1] - current)
-
-            return [...acc, Math.floor(result)]
+            // Viva la JS, hehe
+            return [...acc, Math.floor(result * 100) / 100]
         },
         [0]
     )
+
+    return result
 }
 
 export const converToPoints = ({ xCoords, layerHeight, maxValue, data }) =>
@@ -114,3 +117,5 @@ export const abbreviateNumber = (value) => {
 
     return `${newValue.toPrecision(3)} ${suffixes[suffixNum]}` 
 }
+
+export const outQuart = n => 1 - --n * n * n * n

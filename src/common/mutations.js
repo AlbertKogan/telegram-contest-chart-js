@@ -1,4 +1,9 @@
-import { SET_VISIBLE_BOUNDS, TOGGLE_ACTIVE_CHART, TOGGLE_NIGHT_MODE } from './actions'
+import {
+    SET_VISIBLE_BOUNDS,
+    TOGGLE_ACTIVE_CHART,
+    TOGGLE_NIGHT_MODE,
+    TOGGLE_MOOVING_STATE,
+} from './actions'
 
 export default {
     [SET_VISIBLE_BOUNDS](state, payload) {
@@ -15,11 +20,19 @@ export default {
         return _state
     },
 
-    [TOGGLE_NIGHT_MODE](_state, payload) {
+    [TOGGLE_NIGHT_MODE](state, payload) {
         const { nightMode } = payload
 
-        _state.ui.nightMode = nightMode;
+        state.ui.nightMode = nightMode
 
-        return _state
+        return state
+    },
+
+    [TOGGLE_MOOVING_STATE](state, payload) {
+        const { isMooving } = payload
+
+        state.ui.isMooving = isMooving
+
+        return state
     },
 }

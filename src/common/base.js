@@ -2,9 +2,8 @@ import {
     maxInDataSet,
     converDataSetToPoints,
     convertToXAxisCoords,
+    outQuart,
 } from '../common/utils'
-
-const outQuart = n => 1 - --n * n * n * n
 
 class Base {
     layers = {}
@@ -90,7 +89,7 @@ class Base {
 
     drawChart({ layerID, points, colors }) {
         const chartContext = this.getLayerContext({ layerID })
-        const { prevState, chartHeight } = this
+        const { prevState, chartHeight, isMooving } = this
         const prevPoints = prevState.points || {}
         let transition = outQuart(this.iteration / this.tickCount)
 
@@ -102,10 +101,21 @@ class Base {
             for (let i = 0; i < points[line].length - 1; i++) {
                 let current = i
                 let next = i + 1
+
                 let p1 = points[line][current]
                 let p2 = points[line][next]
 
-                if (!prevPoints[line]) {
+                if (isMooving) {
+                    chartContext.moveTo(
+                        p1.x,
+                        p1.y
+                    )
+                    chartContext.lineTo(
+                        p2.x,
+                        p2.y
+                    )
+                    this.iteration = this.tickCount
+                } else if (!prevPoints[line]) {
                     chartContext.moveTo(
                         p1.x,
                         chartHeight -
@@ -116,11 +126,9 @@ class Base {
                         chartHeight -
                             (chartHeight * transition - p2.y * transition)
                     )
-                } else {
+                } else if (prevPoints[line][current] && prevPoints[line][next] && !isMooving) {
                     let prevPoint1 = prevPoints[line][current]
                     let prevPoint2 = prevPoints[line][next]
-
-                    //console.log('==>', prevPoint1.y === p1.y);
 
                     chartContext.moveTo(
                         p1.x,
@@ -130,11 +138,9 @@ class Base {
                         p2.x,
                         prevPoint2.y + (p2.y - prevPoint2.y) * transition
                     )
-
-                    // chartContext.moveTo(p1.x, p1.y * transition);
-                    // chartContext.lineTo(p2.x, p2.y * transition);
                 }
             }
+
             chartContext.lineWidth = 2
             chartContext.stroke()
             chartContext.closePath()
@@ -146,6 +152,8 @@ class Base {
             window.requestAnimationFrame(
                 this.drawChart.bind(this, { layerID, points, colors })
             )
+        } else {
+            this.iteration = 0
         }
     }
 

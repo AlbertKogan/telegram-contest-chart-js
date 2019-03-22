@@ -10,7 +10,7 @@ import {
     HOVER_LEFT_BORDER,
     HOVER_RIGHT_BORDER,
 } from './constants'
-import { SET_VISIBLE_BOUNDS } from './../common/actions'
+import { SET_VISIBLE_BOUNDS, TOGGLE_MOOVING_STATE } from './../common/actions'
 
 const OVERLAY_COLOR = 'rgba(245, 249, 251, 0.8)'
 const NIGHT_OVERLAY_COLOR = 'rgba(31, 42, 55, 0.6)'
@@ -30,6 +30,7 @@ class Preview extends Base {
     animationID
     transform = null
     hoverType = null
+    isMooving = false
     _delta = 0
 
     constructor({ parent, data, store }) {
@@ -74,7 +75,7 @@ class Preview extends Base {
             x: WINDOW_PADDING,
             y: 0,
             width: 200,
-            height: 100,
+            height: self.height,
         }
 
         // Draw rectangle
@@ -90,7 +91,7 @@ class Preview extends Base {
             self.withHandler({
                 layerID: WINDOW_LAYER,
                 handlerType: 'touchmove',
-                handler: self.throttledMosueMove.bind(self),
+                handler: self.onMouseMove.bind(self),
             })
             self.withHandler({
                 layerID: WINDOW_LAYER,
@@ -111,7 +112,7 @@ class Preview extends Base {
             self.withHandler({
                 layerID: WINDOW_LAYER,
                 handlerType: 'mousemove',
-                handler: self.throttledMosueMove.bind(self),
+                handler: self.onMouseMove.bind(self),
             })
             self.withHandler({
                 layerID: WINDOW_LAYER,
@@ -137,22 +138,31 @@ class Preview extends Base {
 
         store.events.subscribe({
             eventName: 'stateChange',
-            callback: () => {
-                // Restore tickCount
-                self.iteration = 0
+            callback: self.throttledCallback.bind(self)
+        })
+    }
 
-                self._visibleBounds = store.state.ui.visibleBounds
-                self._activeCharts = store.state.ui.activeCharts
-                self.nightMode = store.state.ui.nightMode
+    get throttledCallback () {
+        return throttle(100, this.storeCallback.bind(this))
+    }
 
-                self.drawWindow()
-                self.recalculate({ showFullRange: true })
-                self.drawChart({
-                    layerID: BASE_LAYER,
-                    points: self.points,
-                    colors: data.colors,
-                })
-            },
+    storeCallback() {
+        this.iteration = 0
+
+        this._visibleBounds = this.store.state.ui.visibleBounds
+        this._activeCharts = this.store.state.ui.activeCharts
+        this.nightMode = this.store.state.ui.nightMode
+
+        this.recalculate({ showFullRange: true })
+        window.requestAnimationFrame(this.drawScene.bind(this))
+    }
+
+    drawScene () {
+        this.drawWindow()
+        this.drawChart({
+            layerID: BASE_LAYER,
+            points: this.points,
+            colors: this._rawData.colors,
         })
     }
 
@@ -189,6 +199,7 @@ class Preview extends Base {
 
     onMouseMove(event) {
         event.preventDefault()
+
         const currentMousePosition = this.getCursorPosition(event)
         const { drawWindow, mouseDown, mousePosition } = this
         const windowLayer = this.getLayer({ layerID: WINDOW_LAYER })
@@ -197,6 +208,10 @@ class Preview extends Base {
         // Keep hover type on mouse down
         if (!hoverType || !mouseDown) {
             hoverType = this.setHoverType({ event })
+        }
+
+        if (mouseDown && !this.isMooving) {
+            this.toggleMoovingState({ isMooving: true })
         }
 
         switch (hoverType) {
@@ -245,9 +260,10 @@ class Preview extends Base {
     }
 
     get mouseDelta() {
-        const { prevMosuePosition, mousePosition } = this
+        const { prevMosuePosition, mousePosition, dpr } = this
 
-        return mousePosition.x - prevMosuePosition.x
+        // 1.3 to boost up delta for retina devices, otherwise window moving too slow
+        return ((mousePosition.x - prevMosuePosition.x) / dpr) * 1.3
     }
 
     get throttledMosueMove() {
@@ -261,28 +277,24 @@ class Preview extends Base {
 
         this.mouseDown = true
         this.mousePosition = mousePosition
-        this.prevMosuePosition = mousePosition
-        this.preventAnimation = true
     }
 
     onTouchStart(event) {
         event.preventDefault()
 
         this.mouseIn = true
+        this.setHoverType({ event })
         this.onMouseDown(event)
-        this.preventAnimation = true
     }
 
     onTouchEnd(event) {
-        this.mouseDown = false
         this.mouseIn = false
-        this.onMouseDown(event)
-        this.preventAnimation = false
+        this.onMouseUp(event)
     }
 
     onMouseUp() {
         this.mouseDown = false
-        this.preventAnimation = false
+        this.toggleMoovingState({ isMooving: false })
     }
 
     onMouseEnter() {
@@ -291,6 +303,8 @@ class Preview extends Base {
 
     onMouseOut() {
         this.mouseIn = false
+        this.mouseDown = false
+        this.toggleMoovingState({ isMooving: false })
     }
 
     drawWindow() {
@@ -326,7 +340,9 @@ class Preview extends Base {
         }
 
         this.windowPosition = newWindowPosition
-        windowLayerContext.strokeStyle = nightMode ? NIGHT_BORDER_COLOR : BORDER_COLOR
+        windowLayerContext.strokeStyle = nightMode
+            ? NIGHT_BORDER_COLOR
+            : BORDER_COLOR
         windowLayerContext.lineWidth = BORDER_WIDTH
         windowLayerContext.strokeRect(
             newWindowPosition.x,
@@ -345,7 +361,9 @@ class Preview extends Base {
             layerID: WINDOW_LAYER,
         })
 
-        windowLayerContext.fillStyle = nightMode ? NIGHT_OVERLAY_COLOR : OVERLAY_COLOR 
+        windowLayerContext.fillStyle = nightMode
+            ? NIGHT_OVERLAY_COLOR
+            : OVERLAY_COLOR
         // Right overlay
         windowLayerContext.fillRect(
             windowPosition.width + windowPosition.x,
@@ -371,6 +389,18 @@ class Preview extends Base {
                 windowWidth: windowPosition.width,
             },
         })
+    }
+
+    toggleMoovingState({ isMooving }) {
+        const { store } = this
+
+        if (isMooving !== this.isMooving) {
+            this.isMooving = isMooving
+            store.dispatch({
+                actionKey: TOGGLE_MOOVING_STATE,
+                payload: { isMooving },
+            })
+        }
     }
 }
 
