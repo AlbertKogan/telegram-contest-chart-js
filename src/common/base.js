@@ -12,9 +12,10 @@ class Base {
     parent = null
     parentSize = {}
     dpr = (window.devicePixelRatio || 1) > 2 ? 2 : window.devicePixelRatio
-    prevState = {}
+    prevState = null
     tickCount = 30
     iteration = 0
+    isInitial = true
 
     constructor() {
         this.touchDevice = 'ontouchstart' in document.documentElement
@@ -25,14 +26,14 @@ class Base {
 
         layer.width = this.parentSize.width * this.dpr
         layer.height = this.parentSize.height * this.dpr
-        layer.style.width = `${this.parentSize.width}px`;
-        layer.style.height = `${this.parentSize.height}px`;
+        layer.style.width = `${this.parentSize.width}px`
+        layer.style.height = `${this.parentSize.height}px`
 
         const context = layer.getContext('2d')
 
         context.scale(this.dpr, this.dpr)
-        context.imageSmoothingEnabled = false;
-        
+        context.imageSmoothingEnabled = false
+
         this.layers = {
             ...this.layers,
             [layerID]: layer,
@@ -91,7 +92,7 @@ class Base {
         }
     }
 
-    drawChart({ layerID, points, colors }) {
+    drawChart({ layerID, points, colors, isInitial = false }) {
         const chartContext = this.getLayerContext({ layerID })
         const { prevState, chartHeight, isMooving } = this
         const prevPoints = prevState.points || {}
@@ -110,16 +111,10 @@ class Base {
                 let p2 = points[line][next]
 
                 if (isMooving) {
-                    chartContext.moveTo(
-                        p1.x,
-                        p1.y
-                    )
-                    chartContext.lineTo(
-                        p2.x,
-                        p2.y
-                    )
                     this.iteration = this.tickCount
-                } else if (!prevPoints[line]) {
+                    chartContext.moveTo(p1.x, p1.y)
+                    chartContext.lineTo(p2.x, p2.y)
+                } else if (isInitial || !prevPoints[line]) {
                     chartContext.moveTo(
                         p1.x,
                         chartHeight -
@@ -130,7 +125,12 @@ class Base {
                         chartHeight -
                             (chartHeight * transition - p2.y * transition)
                     )
-                } else if (prevPoints[line][current] && prevPoints[line][next] && !isMooving) {
+                } else if (
+                    prevPoints[line][current] &&
+                    prevPoints[line][next] &&
+                    !isMooving
+                ) {
+                    debugger;
                     let prevPoint1 = prevPoints[line][current]
                     let prevPoint2 = prevPoints[line][next]
 
@@ -144,7 +144,7 @@ class Base {
                     )
                 }
             }
-
+            
             chartContext.lineWidth = 2
             chartContext.stroke()
             chartContext.closePath()
@@ -153,8 +153,8 @@ class Base {
         this.iteration += 1
 
         if (this.iteration <= this.tickCount) {
-            window.requestAnimationFrame(
-                this.drawChart.bind(this, { layerID, points, colors })
+            this.animationID = window.requestAnimationFrame(
+                this.drawChart.bind(this, { layerID, points, colors, isInitial })
             )
         } else {
             this.iteration = 0
@@ -190,30 +190,42 @@ class Base {
             }
         }
 
-        // Keep prev state
-        this.prevState = {
-            ...this.prevState,
-            maxInColumns: this.maxInColumns,
-            xCoords: this.xCoords,
-            points: this.points,
-        }
-
-        this.maxInColumns = maxInDataSet({ dataSet: Object.values(newDataSet) })
-        this.xCoords = convertToXAxisCoords({
+        const maxInColumns = maxInDataSet({ dataSet: Object.values(newDataSet) })
+        const xCoords = convertToXAxisCoords({
             layerWidth: this.width,
             data: newXAxisData,
         })
-        this.points = converDataSetToPoints({
+        const points = converDataSetToPoints({
             dataSet: newDataSet,
-            xCoords: this.xCoords,
+            xCoords: xCoords,
             layerHeight: this.chartHeight,
-            maxValue: this.maxInColumns,
+            maxValue: maxInColumns,
         })
+
+        if (!this.prevState) {
+            // Keep prev state
+            this.prevState = {
+                maxInColumns: maxInColumns,
+                xCoords: xCoords,
+                points: points,
+            }
+        } else {
+            this.prevState = {
+                ...this.prevState,
+                maxInColumns: this.maxInColumns,
+                xCoords: this.xCoords,
+                points: this.points,
+            }
+        }
+
+        this.maxInColumns = maxInColumns
+        this.xCoords = xCoords
+        this.points = points
     }
 
     getCursorPosition(event) {
         let currentCursorPosition = this.mousePosition
-        const { parentSize } = this;
+        const { parentSize } = this
 
         if (this.touchDevice && event.touches.length) {
             currentCursorPosition = {
@@ -222,7 +234,10 @@ class Base {
                 y: event.touches[0].clientY,
             }
         } else {
-            currentCursorPosition = { x: event.clientX - parentSize.x, y: event.clientY }
+            currentCursorPosition = {
+                x: event.clientX - parentSize.x,
+                y: event.clientY,
+            }
         }
 
         return currentCursorPosition

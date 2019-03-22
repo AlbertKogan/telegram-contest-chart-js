@@ -53,7 +53,7 @@ export const converToPoints = ({ xCoords, layerHeight, maxValue, data }) =>
             ...acc,
             {
                 x: xCoords[index],
-                y: Math.floor(layerHeight - current * (layerHeight / maxValue)),
+                y: Math.floor(6 + (layerHeight - current * (layerHeight / maxValue))),
             },
         ],
         []

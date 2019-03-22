@@ -23,7 +23,9 @@ export default class App {
     constructor({ data }) {
         const self = this
 
-        self.data = processData(data)
+        let _data = [data[0]];
+
+        self.data = processData(_data)
         self.store = self.initializeStore({
             data: self.data,
             rawData: data,

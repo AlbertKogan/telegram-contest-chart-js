@@ -27,7 +27,7 @@ class Preview extends Base {
     prevMosuePosition = { x: 0, y: 0 }
     mouseDown = false
     mouseIn = false
-    animationID
+    animationID = null
     transform = null
     hoverType = null
     isMooving = false
@@ -73,14 +73,10 @@ class Preview extends Base {
             height: self.height,
         }
 
+        this.sliceVisiblePart()
         // Draw rectangle
-        self.drawChart({
-            layerID: BASE_LAYER,
-            points: self.points,
-            colors: data.colors,
-        })
-
-        self.drawWindow()
+        self.drawScene()
+        this.isInitial = false
 
         if (self.touchDevice) {
             self.withHandler({
@@ -149,6 +145,10 @@ class Preview extends Base {
         this.nightMode = this.store.state.nightMode
 
         this.recalculate({ showFullRange: true })
+        
+        if (this.animationID) {
+            window.cancelAnimationFrame(this.animationID)
+        }
         window.requestAnimationFrame(this.drawScene.bind(this))
     }
 
@@ -158,6 +158,7 @@ class Preview extends Base {
             layerID: BASE_LAYER,
             points: this.points,
             colors: this._rawData.colors,
+            isInitial: this.isInitial
         })
     }
 
@@ -385,7 +386,7 @@ class Preview extends Base {
                     toIndex: xCoords.findIndex(
                         item => item >= windowPosition.x + windowPosition.width
                     ),
-                    windowWidth: windowPosition.width,
+                    windowPosition: windowPosition,
                 },
             },
         })

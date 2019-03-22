@@ -8,8 +8,7 @@ import {
 } from './constants'
 import {
     throttle,
-    convertToXAxisCoords,
-    abbreviateNumber,
+    abbreviateNumber
 } from '../common/utils'
 
 import commonStyles from './../style.scss'
@@ -47,6 +46,7 @@ class LineChart extends Base {
     _hoverThreshold = 10
     _opacity = 0
     isMooving = false
+    xAxisiteration = 0
 
     constructor({ parent, data, store, chartID }) {
         super()
@@ -77,14 +77,11 @@ class LineChart extends Base {
         self._visibleBounds = store.state.charts[self.chartID].ui.visibleBounds
         self._activeCharts = store.state.charts[self.chartID].ui.activeCharts
 
-        self._xCoordsAll = convertToXAxisCoords({
-            layerWidth: self.width,
-            data: self._rawData.x,
-        })
-
+        this.isInitial = true
         this.setAverageLabelWidth()
         self.recalculate({ showFullRange: false })
         self.drawScene()
+        this.isInitial = false
 
         if (self.touchDevice) {
             self.withHandler({
@@ -128,14 +125,15 @@ class LineChart extends Base {
 
     storeCallback () {
         this.iteration = 0
-
         this._visibleBounds = this.store.state.charts[this.chartID].ui.visibleBounds
         this._activeCharts = this.store.state.charts[this.chartID].ui.activeCharts
         this.isMooving = this.store.state.charts[this.chartID].ui.isMooving
         this.nightMode = this.store.state.nightMode
-
-
+        
         this.recalculate({ showFullRange: false })
+        if (this.animationID) {
+            window.cancelAnimationFrame(this.animationID)
+        }
         window.requestAnimationFrame(this.drawScene.bind(this))
     }
 
@@ -168,6 +166,7 @@ class LineChart extends Base {
             layerID: LINE_CHART_LAYER,
             points: this.points,
             colors: this._rawData.colors,
+            isInitial: this.isInitial
         })
         this.drawXAxis()
         this.drawLines()
@@ -216,7 +215,7 @@ class LineChart extends Base {
             visibleBounds,
             nightMode,
         } = this
-        const xAxisLayer = this.getLayerContext({ layerID: X_AXIS_LAYER })
+        const xAxisLayer = this.getLayerContext({ layerID: X_AXIS_LAYER })        
 
         xAxisLayer.font = `lighter ${TICK_FONT_SIZE}px Helvetica`
         xAxisLayer.fillStyle = nightMode ? NIGHT_FONT_COLOR : FONT_COLOR
