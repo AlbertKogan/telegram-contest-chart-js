@@ -89,7 +89,7 @@ class Base {
 
     drawChart({ layerID, points, colors }) {
         const chartContext = this.getLayerContext({ layerID })
-        const { prevState, chartHeight } = this
+        const { prevState, chartHeight, isMooving } = this
         const prevPoints = prevState.points || {}
         let transition = outQuart(this.iteration / this.tickCount)
 
@@ -105,7 +105,17 @@ class Base {
                 let p1 = points[line][current]
                 let p2 = points[line][next]
 
-                if (!prevPoints[line]) {
+                if (isMooving) {
+                    chartContext.moveTo(
+                        p1.x,
+                        p1.y
+                    )
+                    chartContext.lineTo(
+                        p2.x,
+                        p2.y
+                    )
+                    this.iteration = this.tickCount
+                } else if (!prevPoints[line]) {
                     chartContext.moveTo(
                         p1.x,
                         chartHeight -
@@ -116,7 +126,7 @@ class Base {
                         chartHeight -
                             (chartHeight * transition - p2.y * transition)
                     )
-                } else if (prevPoints[line][current] && prevPoints[line][next]) {
+                } else if (prevPoints[line][current] && prevPoints[line][next] && !isMooving) {
                     let prevPoint1 = prevPoints[line][current]
                     let prevPoint2 = prevPoints[line][next]
 
@@ -127,15 +137,6 @@ class Base {
                     chartContext.lineTo(
                         p2.x,
                         prevPoint2.y + (p2.y - prevPoint2.y) * transition
-                    )
-                } else {
-                    chartContext.moveTo(
-                        p1.x,
-                        p1.y
-                    )
-                    chartContext.lineTo(
-                        p2.x,
-                        p2.y
                     )
                 }
             }
@@ -151,6 +152,8 @@ class Base {
             window.requestAnimationFrame(
                 this.drawChart.bind(this, { layerID, points, colors })
             )
+        } else {
+            this.iteration = 0
         }
     }
 

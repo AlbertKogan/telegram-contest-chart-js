@@ -10,7 +10,7 @@ import {
     HOVER_LEFT_BORDER,
     HOVER_RIGHT_BORDER,
 } from './constants'
-import { SET_VISIBLE_BOUNDS } from './../common/actions'
+import { SET_VISIBLE_BOUNDS, TOGGLE_MOOVING_STATE } from './../common/actions'
 
 const OVERLAY_COLOR = 'rgba(245, 249, 251, 0.8)'
 const NIGHT_OVERLAY_COLOR = 'rgba(31, 42, 55, 0.6)'
@@ -30,6 +30,7 @@ class Preview extends Base {
     animationID
     transform = null
     hoverType = null
+    isMooving = false
     _delta = 0
 
     constructor({ parent, data, store }) {
@@ -137,22 +138,31 @@ class Preview extends Base {
 
         store.events.subscribe({
             eventName: 'stateChange',
-            callback: () => {
-                // Restore tickCount
-                self.iteration = 0
+            callback: self.throttledCallback.bind(self)
+        })
+    }
 
-                self._visibleBounds = store.state.ui.visibleBounds
-                self._activeCharts = store.state.ui.activeCharts
-                self.nightMode = store.state.ui.nightMode
+    get throttledCallback () {
+        return throttle(100, this.storeCallback.bind(this))
+    }
 
-                self.drawWindow()
-                self.recalculate({ showFullRange: true })
-                self.drawChart({
-                    layerID: BASE_LAYER,
-                    points: self.points,
-                    colors: data.colors,
-                })
-            },
+    storeCallback() {
+        this.iteration = 0
+
+        this._visibleBounds = this.store.state.ui.visibleBounds
+        this._activeCharts = this.store.state.ui.activeCharts
+        this.nightMode = this.store.state.ui.nightMode
+
+        this.recalculate({ showFullRange: true })
+        window.requestAnimationFrame(this.drawScene.bind(this))
+    }
+
+    drawScene () {
+        this.drawWindow()
+        this.drawChart({
+            layerID: BASE_LAYER,
+            points: this.points,
+            colors: this._rawData.colors,
         })
     }
 
@@ -198,6 +208,10 @@ class Preview extends Base {
         // Keep hover type on mouse down
         if (!hoverType || !mouseDown) {
             hoverType = this.setHoverType({ event })
+        }
+
+        if (mouseDown && !this.isMooving) {
+            this.toggleMoovingState({ isMooving: true })
         }
 
         switch (hoverType) {
@@ -280,6 +294,7 @@ class Preview extends Base {
 
     onMouseUp() {
         this.mouseDown = false
+        this.toggleMoovingState({ isMooving: false })
     }
 
     onMouseEnter() {
@@ -288,6 +303,8 @@ class Preview extends Base {
 
     onMouseOut() {
         this.mouseIn = false
+        this.mouseDown = false
+        this.toggleMoovingState({ isMooving: false })
     }
 
     drawWindow() {
@@ -323,7 +340,9 @@ class Preview extends Base {
         }
 
         this.windowPosition = newWindowPosition
-        windowLayerContext.strokeStyle = nightMode ? NIGHT_BORDER_COLOR : BORDER_COLOR
+        windowLayerContext.strokeStyle = nightMode
+            ? NIGHT_BORDER_COLOR
+            : BORDER_COLOR
         windowLayerContext.lineWidth = BORDER_WIDTH
         windowLayerContext.strokeRect(
             newWindowPosition.x,
@@ -342,7 +361,9 @@ class Preview extends Base {
             layerID: WINDOW_LAYER,
         })
 
-        windowLayerContext.fillStyle = nightMode ? NIGHT_OVERLAY_COLOR : OVERLAY_COLOR 
+        windowLayerContext.fillStyle = nightMode
+            ? NIGHT_OVERLAY_COLOR
+            : OVERLAY_COLOR
         // Right overlay
         windowLayerContext.fillRect(
             windowPosition.width + windowPosition.x,
@@ -368,6 +389,18 @@ class Preview extends Base {
                 windowWidth: windowPosition.width,
             },
         })
+    }
+
+    toggleMoovingState({ isMooving }) {
+        const { store } = this
+
+        if (isMooving !== this.isMooving) {
+            this.isMooving = isMooving
+            store.dispatch({
+                actionKey: TOGGLE_MOOVING_STATE,
+                payload: { isMooving },
+            })
+        }
     }
 }
 

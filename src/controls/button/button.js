@@ -2,6 +2,7 @@ import styles from './style.scss'
 import commonStyles from './../../style.scss'
 
 import { TOGGLE_ACTIVE_CHART } from '../../common/actions'
+import { throttle } from '../../common/utils'
 
 class Button {
     _active = true
@@ -11,6 +12,7 @@ class Button {
         const self = this
 
         self._id = id
+        self.store = store
         self.buttonWrapper = document.createElement('div')
         self.buttonWrapper.classList.add(styles.buttonWrapper)
         self.buttonWrapper.classList.add(commonStyles.buttonWrapper)
@@ -45,24 +47,32 @@ class Button {
         label.appendChild(circle)
         label.appendChild(icon)
         text.classList.add(styles.buttonText)
-        // TODO: fixs
         text.innerText = store.state.orm.data.names[id]
 
         self.buttonWrapper.appendChild(label)
         self.buttonWrapper.appendChild(text)
 
-        self.buttonWrapper.addEventListener('click', () => {
-            self.buttonWrapper.classList.toggle(styles.active)
-            self._active = !self._active
+        self.buttonWrapper.addEventListener('click', self.throttledClickHandler.bind(self))
+    }
 
-            store.dispatch({
-                actionKey: TOGGLE_ACTIVE_CHART,
-                payload: {
-                    id: self._id,
-                    state: self._active,
-                },
-            })
+    clickHandler (event) {
+        event.preventDefault();
+
+        this.buttonWrapper.classList.toggle(styles.active)
+        this._active = !this._active
+
+        this.store.dispatch({
+            actionKey: TOGGLE_ACTIVE_CHART,
+            payload: {
+                id: this._id,
+                state: this._active,
+            },
         })
+    }
+
+    // Against abusing by brut clicking
+    get throttledClickHandler() {
+        return throttle(500, this.clickHandler.bind(this))
     }
 }
 
