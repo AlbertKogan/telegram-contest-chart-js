@@ -40,24 +40,18 @@ export default class App {
         })
 
         // append after all graphs init
-        setTimeout(
-            () => self.appContainter.appendChild(modeLink.modeLinkWrapper),
-            self.data.length * 1500
-        )
+        self.appContainter.appendChild(modeLink.modeLinkWrapper)
     }
 
     throttledInit(chartData, index) {
         const self = this
 
-        return setTimeout(
-            this.initializeChart.bind(this, {
-                chartData,
-                store: self.store,
-                index,
-                chartID: `CHART_ID_${index}`,
-            }),
-            index * 1500
-        )
+        this.initializeChart.bind(this, {
+            chartData,
+            store: self.store,
+            index,
+            chartID: `CHART_ID_${index}`,
+        })()
     }
 
     initializeStore({ data, rawData }) {

@@ -77,6 +77,9 @@ class Preview extends Base {
 
         let id = window.requestAnimationFrame(self.drawScene.bind(self))
         self.addAnimationID({ animationID: 'WINDOW_SCENE_ANIMATION', id })
+        if (parent.getBoundingClientRect().top > window.innerHeight) {
+            self.preventAnimation = true
+        }
 
         if (self.touchDevice) {
             self.withHandler({
@@ -140,6 +143,7 @@ class Preview extends Base {
             return
         }
         this.isInitial = false
+        this.preventAnimation = false
         this.iteration = 0
 
         this._visibleBounds = this.store.state.charts[this.chartID].ui.visibleBounds

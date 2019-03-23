@@ -38,7 +38,11 @@ class Base {
         let currentID = this.animations[animationID].pop();
         this.animations[animationID].map((id) => window.cancelAnimationFrame(id))
         this.animations[animationID] = [currentID];
+    }
 
+    cancelAnimationsByID ({ animationID }) {
+        this.animations[animationID].map((id) => window.cancelAnimationFrame(id))
+        this.animations[animationID] = [];
     }
 
     cancelAllAnimations () {
@@ -143,7 +147,16 @@ class Base {
                 let p1 = points[line][current]
                 let p2 = points[line][next]
 
-                if (isInitial || !prevPoints[line]) {
+                if (this.preventAnimation) {
+                    chartContext.moveTo(
+                        p1.x,
+                        p1.y
+                    )
+                    chartContext.lineTo(
+                        p2.x,
+                        p2.y
+                    )
+                } else if (isInitial || !prevPoints[line]) {
                     chartContext.moveTo(
                         p1.x,
                         chartHeight -
@@ -178,6 +191,11 @@ class Base {
         }
 
         this.iteration += 1
+
+        if (this.preventAnimation) {
+            this.cancelAnimationsByID({ animationID: 'CHART_ANIMATION' })
+            return;
+        }
 
         if (this.iteration <= this.tickCount) {
             const id = window.requestAnimationFrame(

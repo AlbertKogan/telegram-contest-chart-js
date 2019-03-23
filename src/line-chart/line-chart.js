@@ -74,8 +74,12 @@ class LineChart extends Base {
         self.isInitial = true
         self.setAverageLabelWidth()
         self.recalculate({ showFullRange: false })
+
         let id = window.requestAnimationFrame(self.drawScene.bind(self))
         self.addAnimationID({ animationID: 'CHART_SCENE_ANIMATION', id })
+        if (parent.getBoundingClientRect().top > window.innerHeight) {
+            self.preventAnimation = true
+        }
 
         if (self.touchDevice) {
             self.withHandler({
@@ -120,6 +124,7 @@ class LineChart extends Base {
             return
         }
         this.isInitial = false
+        this.preventAnimation = false
         this._visibleBounds = this.store.state.charts[
             this.chartID
         ].ui.visibleBounds
@@ -239,14 +244,22 @@ class LineChart extends Base {
 
         for (let _x = 0; _x <= xCoords.length; _x += step) {
             const label = dateLabel({ UNIXDate: _rawData.x[_x] })
+            let xCoord = this.preventAnimation ? xCoords[_x] : prevXCoords[_x] + (xCoords[_x] - prevXCoords[_x]) * transition
+            
             xAxisLayer.fillText(
                 label,
-                prevXCoords[_x] + (xCoords[_x] - prevXCoords[_x]) * transition,
+                xCoord,
                 chartHeight
             )
         }
 
         this.xAxisIteration += 1
+
+        if (this.preventAnimation) {
+            this.cancelAnimationsByID({ animationID: 'XAXIS_ANIMATION' })
+            return;
+        }
+
         if (this.xAxisIteration <= this.tickCount) {
             let id = window.requestAnimationFrame(
                 this.drawXAxisTicks.bind(this)
@@ -287,6 +300,10 @@ class LineChart extends Base {
         for (let y = 0; y <= yCoords.length; y++) {
             let newY = prevYCoords[y] ? prevYCoords[y] + (yCoords[y] - prevYCoords[y]) * transition : yCoords[y] * transition;
 
+            if (this.preventAnimation) {
+                newY = yCoords[y]
+            }
+
             linesLayer.moveTo(
                 0,
                 newY
@@ -307,10 +324,16 @@ class LineChart extends Base {
         linesLayer.closePath()
 
         this.yAxisIteration += 1
+
+        if (this.preventAnimation) {
+            this.cancelAnimationsByID({ animationID: 'YAXIS_ANIMATION' })
+            return;
+        }
+
         if (this.yAxisIteration <= this.tickCount) {
             let id = window.requestAnimationFrame(this.drawLines.bind(this))
             this.addAnimationID({ animationID: 'YAXIS_ANIMATION', id })
-            this.cancelPrevAnimations({ animationID: 'XAXIS_ANIMATION' })
+            this.cancelPrevAnimations({ animationID: 'YAXIS_ANIMATION' })
         } else {
             this.yAxisIteration = 0
         }
