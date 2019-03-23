@@ -271,7 +271,7 @@ class LineChart extends Base {
         const prevYCoords = prevState.yCoords
         const linesLayer = this.getLayerContext({ layerID: LINES_LAYER })
         const transition = outQuart(this.yAxisIteration / this.tickCount)
-        const dataStep = localMaxInColumns / 8
+        const dataStep = (localMaxInColumns / 8) * (maxInColumns / localMaxInColumns);
 
         this.clearContext({ layerID: LINES_LAYER })
 
@@ -283,8 +283,9 @@ class LineChart extends Base {
 
         let current = 0
         let dataOffset = maxInColumns
+        
         for (let y = 0; y <= yCoords.length; y++) {
-            let newY = prevYCoords[y] + (yCoords[y] - prevYCoords[y]) * transition;
+            let newY = prevYCoords[y] ? prevYCoords[y] + (yCoords[y] - prevYCoords[y]) * transition : yCoords[y] * transition;
 
             linesLayer.moveTo(
                 0,

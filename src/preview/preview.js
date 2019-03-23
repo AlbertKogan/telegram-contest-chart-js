@@ -239,10 +239,10 @@ class Preview extends Base {
         let newDelta = this._delta + delta
 
         // Set boundaries to prevent window overflowing
-        if (newDelta < BORDER_WIDTH) {
-            newDelta = 0
-        } else if (newDelta > width - windowPosition.width - BORDER_WIDTH) {
-            newDelta = windowPosition.x
+        if (newDelta <= 0) {
+            newDelta = this._delta
+        } else if (newDelta >= width - windowPosition.width) {
+            newDelta = width - windowPosition.width
         }
         this._delta = newDelta
         return this._delta
@@ -255,8 +255,6 @@ class Preview extends Base {
     }
 
     onMouseDown(event) {
-        event.preventDefault()
-
         const mousePosition = this.getCursorPosition(event)
 
         this.mouseDown = true
@@ -266,8 +264,6 @@ class Preview extends Base {
     }
 
     onTouchStart(event) {
-        event.preventDefault()
-
         this.mouseIn = true
         this.setHoverType({ event })
         this.onMouseDown(event)
