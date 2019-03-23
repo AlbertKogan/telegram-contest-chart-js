@@ -281,12 +281,13 @@ class LineChart extends Base {
         const prevYCoords = prevState.yCoords
 
         const linesLayer = this.getLayerContext({ layerID: LINES_LAYER })
-        const boundedHeight = chartHeight - TICK_FONT_SIZE
-        let windowHeight = windowPosition ? windowPosition.height : 80
-        let scale = boundedHeight / windowHeight
+        // const boundedHeight = chartHeight - TICK_FONT_SIZE
+        // let windowHeight = windowPosition ? windowPosition.height : 80
         let transition = outQuart(this.yAxisIteration / this.tickCount)
-        const base = (scale * boundedHeight) / localMaxInColumns
-        const dataStep = localMaxInColumns / base
+        const base = chartHeight / maxInColumns
+        const dataStep = localMaxInColumns * base
+
+        debugger
 
         this.clearContext({ layerID: LINES_LAYER })
 
@@ -299,20 +300,19 @@ class LineChart extends Base {
         let current = 0
         let dataOffset = maxInColumns
         for (let y = 0; y <= yCoords.length; y++) {
+            let newY = prevYCoords[y] + (yCoords[y] - prevYCoords[y]) * transition;
             linesLayer.moveTo(
                 0,
-                prevYCoords[y] + (prevYCoords[y] - yCoords[y]) * transition
+                newY
             )
             linesLayer.lineTo(
                 width,
-                prevYCoords[y] + (prevYCoords[y] - yCoords[y]) * transition
+                newY
             )
             linesLayer.fillText(
                 current ? abbreviateNumber(current) : 0,
                 0,
-                prevYCoords[y] +
-                    (prevYCoords[y] - yCoords[y]) * transition -
-                    FONT_PADDING
+                newY - FONT_PADDING
             )
             dataOffset -= dataStep
             current = maxInColumns - dataOffset

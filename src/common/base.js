@@ -222,11 +222,15 @@ class Base {
 
         const localMaxInColumns = maxInDataSet({ dataSet: Object.values(newDataSet) })
         const maxInColumns = maxInDataSet({ dataSet: Object.values(activeColumns) })
-        const yCoords = createYAxisCoords({
-            chartHeight: chartHeight - 11,
-            localMaxInColumns,
-            windowHeight
-        })
+
+        let yCoords = []
+        if (!showFullRange) {
+            yCoords = createYAxisCoords({
+                chartHeight: chartHeight - 11,
+                localMaxInColumns,
+                windowHeight
+            })
+        }
 
         const xCoords = convertToXAxisCoords({
             layerWidth: this.width,
