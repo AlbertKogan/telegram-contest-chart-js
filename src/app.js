@@ -42,7 +42,7 @@ export default class App {
         // append after all graphs init
         setTimeout(
             () => self.appContainter.appendChild(modeLink.modeLinkWrapper),
-            self.data.length * 1000
+            self.data.length * 1500
         )
     }
 
@@ -56,7 +56,7 @@ export default class App {
                 index,
                 chartID: `CHART_ID_${index}`,
             }),
-            index * 1000
+            index * 1500
         )
     }
 

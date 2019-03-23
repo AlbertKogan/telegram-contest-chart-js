@@ -73,9 +73,10 @@ class Preview extends Base {
             height: self.height,
         }
 
-        this.sliceVisiblePart()
-        self.drawScene()
-        this.isInitial = false
+        self.sliceVisiblePart()
+
+        let id = window.requestAnimationFrame(self.drawScene.bind(self))
+        self.addAnimationID({ animationID: 'WINDOW_SCENE_ANIMATION', id })
 
         if (self.touchDevice) {
             self.withHandler({
@@ -138,7 +139,7 @@ class Preview extends Base {
         if (meta.id !== this.chartID && meta.id !== 'ALL') {
             return
         }
-
+        this.isInitial = false
         this.iteration = 0
 
         this._visibleBounds = this.store.state.charts[this.chartID].ui.visibleBounds

@@ -71,11 +71,11 @@ class LineChart extends Base {
         self._visibleBounds = store.state.charts[self.chartID].ui.visibleBounds
         self._activeCharts = store.state.charts[self.chartID].ui.activeCharts
 
-        this.isInitial = true
-        this.setAverageLabelWidth()
+        self.isInitial = true
+        self.setAverageLabelWidth()
         self.recalculate({ showFullRange: false })
-        self.drawScene()
-        this.isInitial = false
+        let id = window.requestAnimationFrame(self.drawScene.bind(self))
+        self.addAnimationID({ animationID: 'CHART_SCENE_ANIMATION', id })
 
         if (self.touchDevice) {
             self.withHandler({
@@ -119,7 +119,7 @@ class LineChart extends Base {
         if (meta.id !== this.chartID && meta.id !== 'ALL') {
             return
         }
-
+        this.isInitial = false
         this._visibleBounds = this.store.state.charts[
             this.chartID
         ].ui.visibleBounds

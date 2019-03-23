@@ -185,7 +185,6 @@ class Base {
             )
 
             this.addAnimationID({ animationID: 'CHART_ANIMATION', id})
-            //this.cancelPrevAnimations({ animationID: 'CHART_ANIMATION' })
         }
     }
 
