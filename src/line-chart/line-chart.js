@@ -111,14 +111,10 @@ class LineChart extends Base {
         }
         store.events.subscribe({
             eventName: 'stateChange',
-            callback: self.throttledCallback.bind(self),
+            callback: self.storeCallback.bind(self),
         })
     }
-
-    get throttledCallback() {
-        return throttle(10, this.storeCallback.bind(this))
-    }
-
+    
     storeCallback({ meta }) {
         if (meta.id !== this.chartID && meta.id !== 'ALL') {
             return
@@ -138,13 +134,9 @@ class LineChart extends Base {
         this.xAxisIteration = 0
         this.yAxisAnimationID = 0
 
-        if (this.isMooving && !isMooving) {
-            this.cancelAllAnimations()
-        } else {
-            let id = window.requestAnimationFrame(this.drawScene.bind(this))
-            this.addAnimationID({ animationID: 'CHART_SCENE_ANIMATION', id })
-            this.cancelPrevAnimations({ animationID: 'CHART_SCENE_ANIMATION' })
-        }
+        this.cancelAllAnimations()
+        let id = window.requestAnimationFrame(this.drawScene.bind(this))
+        this.addAnimationID({ animationID: 'CHART_SCENE_ANIMATION', id })
 
         this.isMooving = isMooving
     }
@@ -277,16 +269,10 @@ class LineChart extends Base {
             prevState,
             yCoords,
         } = this
-        const { windowPosition } = this._visibleBounds
         const prevYCoords = prevState.yCoords
-
         const linesLayer = this.getLayerContext({ layerID: LINES_LAYER })
-        const boundedHeight = chartHeight - TICK_FONT_SIZE
-        let windowHeight = windowPosition ? windowPosition.height : 80
-        let scale = boundedHeight / windowHeight
-        let transition = outQuart(this.yAxisIteration / this.tickCount)
-        const base = (scale * boundedHeight) / localMaxInColumns
-        const dataStep = localMaxInColumns / base
+        const transition = outQuart(this.yAxisIteration / this.tickCount)
+        const dataStep = localMaxInColumns / 8
 
         this.clearContext({ layerID: LINES_LAYER })
 
@@ -298,21 +284,22 @@ class LineChart extends Base {
 
         let current = 0
         let dataOffset = maxInColumns
+        debugger;
         for (let y = 0; y <= yCoords.length; y++) {
+            let newY = prevYCoords[y] + (yCoords[y] - prevYCoords[y]) * transition;
+
             linesLayer.moveTo(
                 0,
-                prevYCoords[y] + (prevYCoords[y] - yCoords[y]) * transition
+                newY
             )
             linesLayer.lineTo(
                 width,
-                prevYCoords[y] + (prevYCoords[y] - yCoords[y]) * transition
+                newY
             )
             linesLayer.fillText(
                 current ? abbreviateNumber(current) : 0,
                 0,
-                prevYCoords[y] +
-                    (prevYCoords[y] - yCoords[y]) * transition -
-                    FONT_PADDING
+                newY - FONT_PADDING
             )
             dataOffset -= dataStep
             current = maxInColumns - dataOffset

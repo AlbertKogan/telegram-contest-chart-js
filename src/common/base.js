@@ -18,11 +18,12 @@ class Base {
     iteration = 0
     isInitial = true
     animations = {
-        'WINDOW_ANIMATION': [],
         'CHART_ANIMATION': [],
         'XAXIS_ANIMATION': [],
         'YAXIS_ANIMATION': [],
-        'CHART_SCENE_ANIMATION': []
+        'CHART_SCENE_ANIMATION': [],
+        'WINDOW_ANIMATION': [],
+        'WINDOW_SCENE_ANIMATION': []
     }
 
     constructor() {
@@ -207,8 +208,8 @@ class Base {
         const { columns, x } = this._rawData
         const { chartHeight } = this;
 
-        let windowWidth = windowPosition ? windowPosition.width : 200;
-        let windowHeight = windowPosition ? windowPosition.height : 80;
+        let windowWidth = windowPosition ? windowPosition.width : 120;
+        let windowHeight = windowPosition ? windowPosition.height : 70;
         let offset = windowPosition ? windowPosition.x : 0;
 
         const activeColumns = this.getActiveColumns({ activeCharts, columns })
@@ -222,11 +223,16 @@ class Base {
 
         const localMaxInColumns = maxInDataSet({ dataSet: Object.values(newDataSet) })
         const maxInColumns = maxInDataSet({ dataSet: Object.values(activeColumns) })
-        const yCoords = createYAxisCoords({
-            chartHeight: chartHeight - 11,
-            localMaxInColumns,
-            windowHeight
-        })
+
+        let yCoords = []
+        if (!showFullRange) {
+            yCoords = createYAxisCoords({
+                chartHeight: chartHeight - 11,
+                localMaxInColumns,
+                maxInColumns,
+                windowHeight
+            })
+        }
 
         const xCoords = convertToXAxisCoords({
             layerWidth: this.width,

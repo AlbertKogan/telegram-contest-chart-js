@@ -42,7 +42,7 @@ export default class App {
         // append after all graphs init
         setTimeout(
             () => self.appContainter.appendChild(modeLink.modeLinkWrapper),
-            self.data.length * 800
+            self.data.length * 1000
         )
     }
 
@@ -56,7 +56,7 @@ export default class App {
                 index,
                 chartID: `CHART_ID_${index}`,
             }),
-            index * 800
+            index * 1000
         )
     }
 
@@ -105,7 +105,7 @@ export default class App {
         const buttonsWrapper = document.createElement('div')
 
         chartTitle.classList.add(styles.chartTitle)
-        chartTitle.innerHTML = `Graph # ${index}`
+        chartTitle.innerHTML = `Graph # ${index + 1}`
         // Append all chart layers
         appContainter.appendChild(chartWrapper)
         chartWrapper.appendChild(chartTitle)

@@ -1,5 +1,4 @@
 import Base from './../common/base'
-import { throttle } from '../common/utils'
 
 import styles from './style.scss'
 
@@ -9,16 +8,15 @@ import {
     HOVER_INNER,
     HOVER_LEFT_BORDER,
     HOVER_RIGHT_BORDER,
+    OVERLAY_COLOR,
+    NIGHT_OVERLAY_COLOR,
+    BORDER_COLOR,
+    NIGHT_BORDER_COLOR,
+    BORDER_WIDTH,
+    WINDOW_PADDING,
+    MIN_WINDOW_WIDTH
 } from './constants'
 import { SET_VISIBLE_BOUNDS, TOGGLE_MOOVING_STATE } from './../common/actions'
-
-const OVERLAY_COLOR = 'rgba(245, 249, 251, 0.8)'
-const NIGHT_OVERLAY_COLOR = 'rgba(31, 42, 55, 0.6)'
-const BORDER_COLOR = 'rgba(221, 234, 243, 0.9)'
-const NIGHT_BORDER_COLOR = 'rgba(65, 86, 106, 0.9)'
-const BORDER_WIDTH = 10
-const WINDOW_PADDING = BORDER_WIDTH / 2
-const MIN_WINDOW_WIDTH = 50
 
 class Preview extends Base {
     borderThreshold = 10
@@ -61,7 +59,6 @@ class Preview extends Base {
         baseLayer.classList.add(styles.preview, styles.previewBase)
 
         self.recalculate({ showFullRange: true })
-
         self.setLayerSettings({
             layerID: WINDOW_LAYER,
             settings: {
@@ -72,12 +69,11 @@ class Preview extends Base {
         self.windowPosition = {
             x: WINDOW_PADDING,
             y: 0,
-            width: 200,
+            width: 120,
             height: self.height,
         }
 
         this.sliceVisiblePart()
-        // Draw rectangle
         self.drawScene()
         this.isInitial = false
 
@@ -134,12 +130,8 @@ class Preview extends Base {
 
         store.events.subscribe({
             eventName: 'stateChange',
-            callback: self.throttledCallback.bind(self),
+            callback: self.storeCallback.bind(self),
         })
-    }
-
-    get throttledCallback() {
-        return throttle(100, this.storeCallback.bind(this))
     }
 
     storeCallback({ meta }) {
@@ -149,20 +141,18 @@ class Preview extends Base {
 
         this.iteration = 0
 
-        this._visibleBounds = this.store.state.charts[
-            this.chartID
-        ].ui.visibleBounds
-        this._activeCharts = this.store.state.charts[
-            this.chartID
-        ].ui.activeCharts
+        this._visibleBounds = this.store.state.charts[this.chartID].ui.visibleBounds
+        this._activeCharts = this.store.state.charts[this.chartID].ui.activeCharts
         this.nightMode = this.store.state.nightMode
-
         this.recalculate({ showFullRange: true })
 
-        if (this.animationID) {
-            window.cancelAnimationFrame(this.animationID)
-        }
-        window.requestAnimationFrame(this.drawScene.bind(this))
+        let isMooving = this.store.state.charts[this.chartID].ui.isMooving
+
+        this.cancelAllAnimations()
+        let id = window.requestAnimationFrame(this.drawScene.bind(this))
+        this.addAnimationID({ animationID: 'WINDOW_SCENE_ANIMATION', id })
+        this.isMooving = isMooving
+
     }
 
     drawScene() {
@@ -208,22 +198,13 @@ class Preview extends Base {
 
     onMouseMove(event) {
         const currentMousePosition = this.getCursorPosition(event)
-        const { drawWindow, mouseDown, mousePosition } = this
+        const { mouseDown, mousePosition } = this
         const windowLayer = this.getLayer({ layerID: WINDOW_LAYER })
         let hoverType = this.hoverType
 
-        window.clearTimeout(this.moveTimer)
-        const self = this
-        this.moveTimer = window.setTimeout(() => {
-            self.toggleMoovingState({ isMooving: false })
-        }, 100)
         // Keep hover type on mouse down
         if (!hoverType || !mouseDown) {
             hoverType = this.setHoverType({ event })
-        }
-
-        if (mouseDown && !this.isMooving) {
-            this.toggleMoovingState({ isMooving: true })
         }
 
         switch (hoverType) {
@@ -244,14 +225,9 @@ class Preview extends Base {
                 this.transform = null
         }
 
-        if (this.windowAnimationID && !mouseDown) {
-            window.cancelAnimationFrame(this.windowAnimationID)
-        } else if (mouseDown) {
+        if (mouseDown) {
             this.prevMosuePosition = mousePosition
             this.mousePosition = currentMousePosition
-            this.windowAnimationID = window.requestAnimationFrame(
-                drawWindow.bind(this)
-            )
             this.sliceVisiblePart()
         }
     }
@@ -262,24 +238,19 @@ class Preview extends Base {
         let newDelta = this._delta + delta
 
         // Set boundaries to prevent window overflowing
-        if (newDelta < 0) {
+        if (newDelta < BORDER_WIDTH) {
             newDelta = 0
-        } else if (newDelta >= width - windowPosition.width) {
+        } else if (newDelta > width - windowPosition.width - BORDER_WIDTH) {
             newDelta = windowPosition.x
         }
         this._delta = newDelta
-        return newDelta
+        return this._delta
     }
 
     get mouseDelta() {
-        const { prevMosuePosition, mousePosition, dpr } = this
+        const { prevMosuePosition, mousePosition } = this
 
-        // 1.3 to boost up delta for retina devices, otherwise window moving too slow
-        return ((mousePosition.x - prevMosuePosition.x) / dpr) * 1.3
-    }
-
-    get throttledMosueMove() {
-        return throttle(10, this.onMouseMove.bind(this))
+        return mousePosition.x - prevMosuePosition.x
     }
 
     onMouseDown(event) {
@@ -288,7 +259,9 @@ class Preview extends Base {
         const mousePosition = this.getCursorPosition(event)
 
         this.mouseDown = true
+        this.prevMosuePosition = mousePosition
         this.mousePosition = mousePosition
+        this.toggleMoovingState({ isMooving: true })
     }
 
     onTouchStart(event) {
@@ -413,7 +386,6 @@ class Preview extends Base {
         const { store, chartID } = this
 
         if (isMooving !== this.isMooving) {
-            this.isMooving = isMooving
             store.dispatch({
                 actionKey: TOGGLE_MOOVING_STATE,
                 meta: { id: chartID },
