@@ -19,23 +19,24 @@ class ModeLink {
 
         self.modeLinkWrapper.addEventListener('click', () => {
             wrapper.classList.toggle(commonStyles.nightMode)
-            self.nightMode = !self.nightMode;
+            self.nightMode = !self.nightMode
             label.innerHTML = self.modeText
 
             store.dispatch({
                 actionKey: TOGGLE_NIGHT_MODE,
+                meta: { id: 'ALL' },
                 payload: {
-                    nightMode: self.nightMode
+                    nightMode: self.nightMode,
                 },
             })
         })
     }
 
-    get mode () {
+    get mode() {
         return this.nightMode ? 'Day' : 'Night'
     }
 
-    get modeText () {
+    get modeText() {
         return `Switch to ${this.mode} Mode`
     }
 }

@@ -5,39 +5,31 @@ import {
     LINES_LAYER,
     HOVERABLE_LAYER,
     TOOLTIP_LAYER,
+    TICK_HEIGHT,
+    TICK_FONT_SIZE,
+    Y_FONT_SIZE,
+    FONT_COLOR,
+    NIGHT_FONT_COLOR,
+    AXIS_COLOR,
+    NIGHT_AXIS_COLOR,
+    LINE_COLOR,
+    NIGHT_LINE_COLOR,
+    HOVER_LINE_COLOR,
+    NIGHT_HOVER_LINE_COLOR,
+    TOOLTIP_BACKGROUND,
+    NIGHT_TOOLTIP_BACKGROUND,
+    TOOLTIP_BORDER_COLOR,
+    NIGHT_TOOLTIP_BORDER_COLOR,
+    TOOLTIP_TEXT_COLOR,
+    NIGHT_TOOLTIP_TEXT_COLOR,
+    DOT_FILL,
+    NIGHT_DOT_FILL,
+    TOOLTIP_PADDING,
+    MIN_TOOLTIP_WIDTH,
 } from './constants'
-import {
-    throttle,
-    convertToXAxisCoords,
-    abbreviateNumber,
-} from '../common/utils'
+import { throttle, abbreviateNumber, outQuart } from '../common/utils'
 
 import commonStyles from './../style.scss'
-
-const TICK_HEIGHT = 15
-const TICK_FONT_SIZE = 11
-const Y_FONT_SIZE = 9
-
-const FONT_COLOR = 'rgb(150, 162, 170)'
-const NIGHT_FONT_COLOR = 'rgb(85 ,103, 119)'
-const AXIS_COLOR = 'rgb(236, 240, 243)'
-const NIGHT_AXIS_COLOR = 'rgb(49, 61, 76)'
-const LINE_COLOR = 'rgb(242, 244, 245)'
-const NIGHT_LINE_COLOR = 'rgb(41, 53, 67)'
-const HOVER_LINE_COLOR = 'rgb(223, 230, 235)'
-const NIGHT_HOVER_LINE_COLOR = 'rgb(60, 74, 89)'
-const TOOLTIP_BACKGROUND = 'rgb(255, 255, 255)'
-const NIGHT_TOOLTIP_BACKGROUND = 'rgb(37, 50, 64)'
-const TOOLTIP_BORDER_COLOR = 'rgb(227, 227, 227)'
-const NIGHT_TOOLTIP_BORDER_COLOR = 'rgb(32, 42, 54)'
-const TOOLTIP_TEXT_COLOR = 'rgb(34, 34, 34)'
-const NIGHT_TOOLTIP_TEXT_COLOR = 'rgb(255, 255, 255)'
-
-const DOT_FILL = 'rgb(255, 255, 255)'
-const NIGHT_DOT_FILL = 'rgb(36, 47, 61)'
-
-const TOOLTIP_PADDING = 5
-const MIN_TOOLTIP_WIDTH = 100
 
 class LineChart extends Base {
     _rawData = {}
@@ -47,6 +39,8 @@ class LineChart extends Base {
     _hoverThreshold = 10
     _opacity = 0
     isMooving = false
+    xAxisIteration = 0
+    yAxisIteration = 0
 
     constructor({ parent, data, store, chartID }) {
         super()
@@ -77,26 +71,25 @@ class LineChart extends Base {
         self._visibleBounds = store.state.charts[self.chartID].ui.visibleBounds
         self._activeCharts = store.state.charts[self.chartID].ui.activeCharts
 
-        self._xCoordsAll = convertToXAxisCoords({
-            layerWidth: self.width,
-            data: self._rawData.x,
-        })
-
+        this.isInitial = true
         this.setAverageLabelWidth()
         self.recalculate({ showFullRange: false })
         self.drawScene()
+        this.isInitial = false
 
         if (self.touchDevice) {
             self.withHandler({
                 layerID: TOOLTIP_LAYER,
                 handlerType: 'touchstart',
                 handler: self.onMouseMove.bind(self),
+                options: { passive: true },
             })
 
             self.withHandler({
                 layerID: TOOLTIP_LAYER,
                 handlerType: 'touchmove',
                 handler: self.throttledMosueMove.bind(self),
+                options: { passive: true },
             })
 
             self.withHandler({
@@ -118,25 +111,42 @@ class LineChart extends Base {
         }
         store.events.subscribe({
             eventName: 'stateChange',
-            callback: self.throttledCallback.bind(self)
+            callback: self.throttledCallback.bind(self),
         })
     }
 
-    get throttledCallback () {
-        return throttle(100, this.storeCallback.bind(this))
+    get throttledCallback() {
+        return throttle(10, this.storeCallback.bind(this))
     }
 
-    storeCallback () {
-        this.iteration = 0
+    storeCallback({ meta }) {
+        if (meta.id !== this.chartID && meta.id !== 'ALL') {
+            return
+        }
 
-        this._visibleBounds = this.store.state.charts[this.chartID].ui.visibleBounds
-        this._activeCharts = this.store.state.charts[this.chartID].ui.activeCharts
-        this.isMooving = this.store.state.charts[this.chartID].ui.isMooving
+        this._visibleBounds = this.store.state.charts[
+            this.chartID
+        ].ui.visibleBounds
+        this._activeCharts = this.store.state.charts[
+            this.chartID
+        ].ui.activeCharts
         this.nightMode = this.store.state.nightMode
-
+        const isMooving = this.store.state.charts[this.chartID].ui.isMooving
 
         this.recalculate({ showFullRange: false })
-        window.requestAnimationFrame(this.drawScene.bind(this))
+        this.iteration = 0
+        this.xAxisIteration = 0
+        this.yAxisAnimationID = 0
+
+        if (this.isMooving && !isMooving) {
+            this.cancelAllAnimations()
+        } else {
+            let id = window.requestAnimationFrame(this.drawScene.bind(this))
+            this.addAnimationID({ animationID: 'CHART_SCENE_ANIMATION', id })
+            this.cancelPrevAnimations({ animationID: 'CHART_SCENE_ANIMATION' })
+        }
+
+        this.isMooving = isMooving
     }
 
     hideTooltip() {
@@ -168,6 +178,7 @@ class LineChart extends Base {
             layerID: LINE_CHART_LAYER,
             points: this.points,
             colors: this._rawData.colors,
+            isInitial: this.isInitial,
         })
         this.drawXAxis()
         this.drawLines()
@@ -215,39 +226,67 @@ class LineChart extends Base {
             _averageLabelWdth,
             visibleBounds,
             nightMode,
+            prevState,
         } = this
         const xAxisLayer = this.getLayerContext({ layerID: X_AXIS_LAYER })
+        const { fromIndex, toIndex } = visibleBounds
+        const prevXCoords = prevState ? prevState.xCoords : null
+        let transition = outQuart(this.xAxisIteration / this.tickCount)
+
+        this.clearContext({ layerID: X_AXIS_LAYER })
 
         xAxisLayer.font = `lighter ${TICK_FONT_SIZE}px Helvetica`
         xAxisLayer.fillStyle = nightMode ? NIGHT_FONT_COLOR : FONT_COLOR
 
         // Visible count of labels
         const maxPeraxis = Math.round(width / (_averageLabelWdth + 40))
+        const visibleXCoords = xCoords.slice(fromIndex, toIndex)
 
-        // Step shoukd be dynamic according to visible window size
-        let step = Math.round(xCoords.length / maxPeraxis)
-
-        // Visible part
-        const sliced = _rawData.x.slice(
-            visibleBounds.fromIndex,
-            visibleBounds.toIndex
-        )
-        // --- Upper everithing OK -------
+        // Step should be dynamic according to visible window size
+        let step = Math.round(visibleXCoords.length / maxPeraxis)
 
         for (let _x = 0; _x <= xCoords.length; _x += step) {
-            const label = dateLabel({ UNIXDate: sliced[_x] })
-            xAxisLayer.fillText(label, xCoords[_x], chartHeight)
+            const label = dateLabel({ UNIXDate: _rawData.x[_x] })
+            xAxisLayer.fillText(
+                label,
+                prevXCoords[_x] + (xCoords[_x] - prevXCoords[_x]) * transition,
+                chartHeight
+            )
+        }
+
+        this.xAxisIteration += 1
+        if (this.xAxisIteration <= this.tickCount) {
+            let id = window.requestAnimationFrame(
+                this.drawXAxisTicks.bind(this)
+            )
+            this.addAnimationID({ animationID: 'XAXIS_ANIMATION', id })
+            this.cancelPrevAnimations({ animationID: 'XAXIS_ANIMATION' })
+        } else {
+            this.xAxisIteration = 0
         }
     }
 
     drawLines() {
-        const LINES = 7
         const FONT_PADDING = 7
-        const { width, nightMode, maxInColumns, chartHeight } = this
+        const {
+            width,
+            nightMode,
+            maxInColumns,
+            localMaxInColumns,
+            chartHeight,
+            prevState,
+            yCoords,
+        } = this
+        const { windowPosition } = this._visibleBounds
+        const prevYCoords = prevState.yCoords
+
         const linesLayer = this.getLayerContext({ layerID: LINES_LAYER })
         const boundedHeight = chartHeight - TICK_FONT_SIZE
-        const lineStep = boundedHeight / LINES
-        const dataStep = maxInColumns / LINES
+        let windowHeight = windowPosition ? windowPosition.height : 80
+        let scale = boundedHeight / windowHeight
+        let transition = outQuart(this.yAxisIteration / this.tickCount)
+        const base = (scale * boundedHeight) / localMaxInColumns
+        const dataStep = localMaxInColumns / base
 
         this.clearContext({ layerID: LINES_LAYER })
 
@@ -257,24 +296,38 @@ class LineChart extends Base {
 
         linesLayer.beginPath()
 
-        let dataOffset = maxInColumns
-        let h = boundedHeight
         let current = 0
-
-        while (h >= 0) {
-            linesLayer.moveTo(0, h)
-            linesLayer.lineTo(width, h)
+        let dataOffset = maxInColumns
+        for (let y = 0; y <= yCoords.length; y++) {
+            linesLayer.moveTo(
+                0,
+                prevYCoords[y] + (prevYCoords[y] - yCoords[y]) * transition
+            )
+            linesLayer.lineTo(
+                width,
+                prevYCoords[y] + (prevYCoords[y] - yCoords[y]) * transition
+            )
             linesLayer.fillText(
                 current ? abbreviateNumber(current) : 0,
                 0,
-                h - FONT_PADDING
+                prevYCoords[y] +
+                    (prevYCoords[y] - yCoords[y]) * transition -
+                    FONT_PADDING
             )
-            h -= lineStep
             dataOffset -= dataStep
             current = maxInColumns - dataOffset
         }
         linesLayer.stroke()
         linesLayer.closePath()
+
+        this.yAxisIteration += 1
+        if (this.yAxisIteration <= this.tickCount) {
+            let id = window.requestAnimationFrame(this.drawLines.bind(this))
+            this.addAnimationID({ animationID: 'YAXIS_ANIMATION', id })
+            this.cancelPrevAnimations({ animationID: 'XAXIS_ANIMATION' })
+        } else {
+            this.yAxisIteration = 0
+        }
     }
 
     get throttledMosueMove() {
@@ -282,8 +335,6 @@ class LineChart extends Base {
     }
 
     onMouseMove(event) {
-        event.preventDefault()
-
         const currentMousePosition = this.getCursorPosition(event)
         const { xCoords, _hoverThreshold } = this
 
@@ -453,9 +504,8 @@ class LineChart extends Base {
             layerID: TOOLTIP_LAYER,
         })
         const { _activeIndex, xCoords, _rawData, dateLabel, width } = this
-
-        // TODO: add dynamic width, height
         const height = 80
+
         let x = xCoords[_activeIndex] + 20
         let y = 20
 

@@ -27,11 +27,12 @@ class Preview extends Base {
     prevMosuePosition = { x: 0, y: 0 }
     mouseDown = false
     mouseIn = false
-    animationID
+    animationID = null
     transform = null
     hoverType = null
     isMooving = false
     _delta = 0
+    moveTimer
 
     constructor({ parent, data, store, chartID }) {
         super()
@@ -46,8 +47,10 @@ class Preview extends Base {
         self.borderThreshold = self.borderThreshold * self.dpr
 
         // Default state
-        self._visibleBounds = self.store.state.charts[self.chartID].ui.visibleBounds
-        self._activeCharts = self.store.state.charts[self.chartID].ui.activeCharts
+        self._visibleBounds =
+            self.store.state.charts[self.chartID].ui.visibleBounds
+        self._activeCharts =
+            self.store.state.charts[self.chartID].ui.activeCharts
         self.nightMode = self.store.state.nightMode
 
         // Create layers: base, window, top layer
@@ -73,25 +76,23 @@ class Preview extends Base {
             height: self.height,
         }
 
+        this.sliceVisiblePart()
         // Draw rectangle
-        self.drawChart({
-            layerID: BASE_LAYER,
-            points: self.points,
-            colors: data.colors,
-        })
-
-        self.drawWindow()
+        self.drawScene()
+        this.isInitial = false
 
         if (self.touchDevice) {
             self.withHandler({
                 layerID: WINDOW_LAYER,
                 handlerType: 'touchmove',
                 handler: self.onMouseMove.bind(self),
+                options: { passive: true },
             })
             self.withHandler({
                 layerID: WINDOW_LAYER,
                 handlerType: 'touchstart',
                 handler: self.onTouchStart.bind(self),
+                options: { passive: true },
             })
             self.withHandler({
                 layerID: WINDOW_LAYER,
@@ -141,14 +142,26 @@ class Preview extends Base {
         return throttle(100, this.storeCallback.bind(this))
     }
 
-    storeCallback() {
+    storeCallback({ meta }) {
+        if (meta.id !== this.chartID && meta.id !== 'ALL') {
+            return
+        }
+
         this.iteration = 0
 
-        this._visibleBounds = this.store.state.charts[this.chartID].ui.visibleBounds
-        this._activeCharts = this.store.state.charts[this.chartID].ui.activeCharts
+        this._visibleBounds = this.store.state.charts[
+            this.chartID
+        ].ui.visibleBounds
+        this._activeCharts = this.store.state.charts[
+            this.chartID
+        ].ui.activeCharts
         this.nightMode = this.store.state.nightMode
 
         this.recalculate({ showFullRange: true })
+
+        if (this.animationID) {
+            window.cancelAnimationFrame(this.animationID)
+        }
         window.requestAnimationFrame(this.drawScene.bind(this))
     }
 
@@ -158,6 +171,7 @@ class Preview extends Base {
             layerID: BASE_LAYER,
             points: this.points,
             colors: this._rawData.colors,
+            isInitial: this.isInitial,
         })
     }
 
@@ -193,13 +207,16 @@ class Preview extends Base {
     }
 
     onMouseMove(event) {
-        event.preventDefault()
-
         const currentMousePosition = this.getCursorPosition(event)
         const { drawWindow, mouseDown, mousePosition } = this
         const windowLayer = this.getLayer({ layerID: WINDOW_LAYER })
         let hoverType = this.hoverType
 
+        window.clearTimeout(this.moveTimer)
+        const self = this
+        this.moveTimer = window.setTimeout(() => {
+            self.toggleMoovingState({ isMooving: false })
+        }, 100)
         // Keep hover type on mouse down
         if (!hoverType || !mouseDown) {
             hoverType = this.setHoverType({ event })
@@ -227,12 +244,12 @@ class Preview extends Base {
                 this.transform = null
         }
 
-        if (this.animationID && !mouseDown) {
-            window.cancelAnimationFrame(this.animationID)
+        if (this.windowAnimationID && !mouseDown) {
+            window.cancelAnimationFrame(this.windowAnimationID)
         } else if (mouseDown) {
             this.prevMosuePosition = mousePosition
             this.mousePosition = currentMousePosition
-            this.animationID = window.requestAnimationFrame(
+            this.windowAnimationID = window.requestAnimationFrame(
                 drawWindow.bind(this)
             )
             this.sliceVisiblePart()
@@ -376,6 +393,7 @@ class Preview extends Base {
 
         store.dispatch({
             actionKey: SET_VISIBLE_BOUNDS,
+            meta: { id: chartID },
             payload: {
                 chartID,
                 visibleBounds: {
@@ -385,7 +403,7 @@ class Preview extends Base {
                     toIndex: xCoords.findIndex(
                         item => item >= windowPosition.x + windowPosition.width
                     ),
-                    windowWidth: windowPosition.width,
+                    windowPosition: windowPosition,
                 },
             },
         })
@@ -398,6 +416,7 @@ class Preview extends Base {
             this.isMooving = isMooving
             store.dispatch({
                 actionKey: TOGGLE_MOOVING_STATE,
+                meta: { id: chartID },
                 payload: { chartID, isMooving },
             })
         }

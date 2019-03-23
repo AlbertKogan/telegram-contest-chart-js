@@ -26,7 +26,7 @@ export default class PubSub {
      * @returns {array}
      * @memberof PubSub
      */
-    publish({ eventName, data = {} }) {
+    publish({ eventName, data = {}, meta = {} }) {
         const events = this.events
 
         console.log(`published ${eventName}`)
@@ -35,6 +35,6 @@ export default class PubSub {
             return []
         }
 
-        return events.get(eventName).map(callback => callback(data))
+        return events.get(eventName).map(callback => callback({ data, meta }))
     }
 }

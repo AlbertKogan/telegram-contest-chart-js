@@ -6,14 +6,14 @@ import {
 } from './actions'
 
 export default {
-    [SET_VISIBLE_BOUNDS](state, payload) {
-        const { chartID, visibleBounds } = payload;
+    [SET_VISIBLE_BOUNDS](state, { payload, meta }) {
+        const { chartID, visibleBounds } = payload
         state.charts[chartID].ui.visibleBounds = visibleBounds
 
         return state
     },
 
-    [TOGGLE_ACTIVE_CHART](_state, payload) {
+    [TOGGLE_ACTIVE_CHART](_state, { payload, meta }) {
         const { id, state, chartID } = payload
 
         _state.charts[chartID].ui.activeCharts[id] = state
@@ -21,7 +21,7 @@ export default {
         return _state
     },
 
-    [TOGGLE_NIGHT_MODE](state, payload) {
+    [TOGGLE_NIGHT_MODE](state, { payload, meta }) {
         const { nightMode } = payload
 
         state.nightMode = nightMode
@@ -29,7 +29,7 @@ export default {
         return state
     },
 
-    [TOGGLE_MOOVING_STATE](state, payload) {
+    [TOGGLE_MOOVING_STATE](state, { payload, meta }) {
         const { isMooving, chartID } = payload
 
         state.charts[chartID].ui.isMooving = isMooving
