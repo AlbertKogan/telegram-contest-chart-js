@@ -46,11 +46,8 @@ export const convertToXAxisCoords = ({ layerWidth, data, scale, offset }) => {
     return result
 }
 
-export const createYAxisCoords = ({ chartHeight, localMaxInColumns, windowHeight, maxInColumns }) => {
-    const base = chartHeight / localMaxInColumns
-    const lineStep = (chartHeight / 8); /// (chartHeight * base)
-
-    debugger;
+export const createYAxisCoords = ({ chartHeight }) => {
+    const lineStep = (chartHeight / 8);
 
     let h = chartHeight
     let acc = []

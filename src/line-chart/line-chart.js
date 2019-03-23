@@ -265,7 +265,6 @@ class LineChart extends Base {
             nightMode,
             maxInColumns,
             localMaxInColumns,
-            chartHeight,
             prevState,
             yCoords,
         } = this
@@ -284,7 +283,6 @@ class LineChart extends Base {
 
         let current = 0
         let dataOffset = maxInColumns
-        debugger;
         for (let y = 0; y <= yCoords.length; y++) {
             let newY = prevYCoords[y] + (yCoords[y] - prevYCoords[y]) * transition;
 
