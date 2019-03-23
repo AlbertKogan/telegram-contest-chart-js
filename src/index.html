@@ -8,6 +8,9 @@
 
 <body id="wrapper">
     <div id="app" class="container"></div>
+    <script>
+        window.data = <%= JSON.stringify(htmlWebpackPlugin.options.data) %>
+    </script>
 </body>
 
 </html>

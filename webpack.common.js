@@ -1,5 +1,6 @@
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
+const jsonData = require('./src/assets/chart_data.json')
 
 module.exports = {
     context: path.resolve(__dirname, 'src'),
@@ -22,6 +23,7 @@ module.exports = {
     plugins: [
         new HtmlWebpackPlugin({
             template: './index.html',
+            data: jsonData
         })
     ],
     resolve: {
