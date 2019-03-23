@@ -31,10 +31,8 @@ export default class Store {
         const handler = self.actions[actionKey]
 
         if (!handler) {
-            console.error(`Action "${actionKey} doesn't exist.`)
             return false
         }
-        console.log(`ACTION: ${actionKey}`, meta)
         return handler(self, { payload, meta })
     }
 
@@ -49,7 +47,6 @@ export default class Store {
         const mutation = self.mutations[mutationKey]
 
         if (!mutation) {
-            console.log(`Mutation "${mutationKey}" doesn't exist`)
             return false
         }
 

@@ -19,7 +19,7 @@
 
 .previewWrapper {
     position: relative;
-    height: 80px;
+    height: 70px;
 }
 
 .chartWrapper {
@@ -79,6 +79,7 @@
     body {
         height: 100vh;
         padding: 0 10px;
+        -webkit-touch-callout: none !important;
     }
 
     @media screen and (min-width: 1025px) {

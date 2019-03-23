@@ -15,8 +15,6 @@ export default class PubSub {
             events.set(eventName, [])
         }
 
-        console.log(`subscribed on ${eventName}`)
-
         events.set(eventName, [...events.get(eventName), callback])
     }
 
@@ -28,8 +26,6 @@ export default class PubSub {
      */
     publish({ eventName, data = {}, meta = {} }) {
         const events = this.events
-
-        console.log(`published ${eventName}`)
 
         if (!events.has(eventName)) {
             return []
