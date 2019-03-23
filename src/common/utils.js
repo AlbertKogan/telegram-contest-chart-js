@@ -20,13 +20,12 @@ export const maxInDataSet = ({ dataSet }) =>
         return localMaxValue > maxValue ? localMaxValue : maxValue
     }, 0)
 
-export const convertToXAxisCoords = ({ layerWidth, data }) => {
+export const convertToXAxisCoords = ({ layerWidth, data, scale, offset }) => {
     // 0 .. base
     // minValue ... maxValue
-    // PRETIFY THIS (linear interpolation)
     const maxValue = data[data.length - 1]
     const minValue = data[0]
-    const base = layerWidth / (maxValue - minValue)
+    const base = (scale * layerWidth) / (maxValue - minValue)
 
     const result = data.reduce(
         (acc, current, index) => {
@@ -41,10 +40,29 @@ export const convertToXAxisCoords = ({ layerWidth, data }) => {
             // Viva la JS, hehe
             return [...acc, Math.floor(result * 100) / 100]
         },
-        [0]
+        [-offset * scale]
     )
 
     return result
+}
+
+export const createYAxisCoords = ({ chartHeight, localMaxInColumns, windowHeight }) => {
+    const LINES = 7
+    const scale = chartHeight / windowHeight
+    const base = (scale * chartHeight) / localMaxInColumns
+    const lineStep = chartHeight / base
+
+    let h = chartHeight
+    let counter = 0
+    let acc = []
+    
+    while (counter <= LINES * 2) {
+        acc.push(h)
+        h -= lineStep
+        counter++
+    }
+
+    return acc;
 }
 
 export const converToPoints = ({ xCoords, layerHeight, maxValue, data }) =>

@@ -41,29 +41,40 @@ class Button {
         circle.setAttribute('cx', 26)
         circle.setAttribute('cy', 26)
         circle.setAttribute('r', 24)
-        circle.setAttribute('stroke', self.store.state.charts[self.chartID].orm.data.colors[id])
-        circle.setAttribute('fill', self.store.state.charts[self.chartID].orm.data.colors[id])
+        circle.setAttribute(
+            'stroke',
+            self.store.state.charts[self.chartID].orm.data.colors[id]
+        )
+        circle.setAttribute(
+            'fill',
+            self.store.state.charts[self.chartID].orm.data.colors[id]
+        )
         icon.setAttribute('d', 'M14.1 27.2l7.1 7.2 16.7-16.8')
 
         label.appendChild(circle)
         label.appendChild(icon)
         text.classList.add(styles.buttonText)
-        text.innerText = self.store.state.charts[self.chartID].orm.data.names[id]
+        text.innerText =
+            self.store.state.charts[self.chartID].orm.data.names[id]
 
         self.buttonWrapper.appendChild(label)
         self.buttonWrapper.appendChild(text)
 
-        self.buttonWrapper.addEventListener('click', self.throttledClickHandler.bind(self))
+        self.buttonWrapper.addEventListener(
+            'click',
+            self.throttledClickHandler.bind(self)
+        )
     }
 
-    clickHandler (event) {
-        event.preventDefault();
+    clickHandler(event) {
+        event.preventDefault()
 
         this.buttonWrapper.classList.toggle(styles.active)
         this._active = !this._active
 
         this.store.dispatch({
             actionKey: TOGGLE_ACTIVE_CHART,
+            meta: { id: this.chartID },
             payload: {
                 chartID: this.chartID,
                 id: this._id,

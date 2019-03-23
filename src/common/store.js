@@ -15,8 +15,6 @@ export default class Store {
         this.actions = actions
         this.mutations = mutations
         this.state = state
-
-        console.log(state);
     }
 
     /**
@@ -28,7 +26,7 @@ export default class Store {
      * @returns {boolean}
      * @memberof Store
      */
-    dispatch({ actionKey, payload }) {
+    dispatch({ actionKey, payload, meta }) {
         const self = this
         const handler = self.actions[actionKey]
 
@@ -36,8 +34,8 @@ export default class Store {
             console.error(`Action "${actionKey} doesn't exist.`)
             return false
         }
-        console.log(`ACTION: ${actionKey}`)
-        return handler(self, payload)
+        console.log(`ACTION: ${actionKey}`, meta)
+        return handler(self, { payload, meta })
     }
 
     /**
@@ -46,7 +44,7 @@ export default class Store {
      * @returns {boolean}
      * @memberof Store
      */
-    commit(mutationKey, payload) {
+    commit(mutationKey, { payload, meta }) {
         const self = this
         const mutation = self.mutations[mutationKey]
 
@@ -57,10 +55,10 @@ export default class Store {
 
         const newState = Object.assign(
             self.state,
-            mutation(self.state, payload)
+            mutation(self.state, { payload, meta })
         )
 
-        self.events.publish({ eventName: 'stateChange', data: newState })
+        self.events.publish({ eventName: 'stateChange', data: newState, meta })
         return newState
     }
 }
