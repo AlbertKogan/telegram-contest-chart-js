@@ -74,12 +74,8 @@ class Preview extends Base {
         }
 
         self.sliceVisiblePart()
-
-        let id = window.requestAnimationFrame(self.drawScene.bind(self))
-        self.addAnimationID({ animationID: 'WINDOW_SCENE_ANIMATION', id })
-        if (parent.getBoundingClientRect().top > window.innerHeight) {
-            self.preventAnimation = true
-        }
+        self.preventAnimation = true
+        self.drawScene()
 
         if (self.touchDevice) {
             self.withHandler({

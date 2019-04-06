@@ -74,12 +74,8 @@ class LineChart extends Base {
         self.isInitial = true
         self.setAverageLabelWidth()
         self.recalculate({ showFullRange: false })
-
-        let id = window.requestAnimationFrame(self.drawScene.bind(self))
-        self.addAnimationID({ animationID: 'CHART_SCENE_ANIMATION', id })
-        if (parent.getBoundingClientRect().top > window.innerHeight) {
-            self.preventAnimation = true
-        }
+        self.preventAnimation = true
+        self.drawScene()
 
         if (self.touchDevice) {
             self.withHandler({
